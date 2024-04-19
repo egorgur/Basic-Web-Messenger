@@ -14,17 +14,28 @@ const dropZone = {
     },
 }
 
-window.window.addEventListener("drop", (event)=>{
-    event.preventDefault()
-    event.stopPropagation()
-    let box = dropZone.window.getBoundingClientRect();
-    if (((box.left - 1 <= event.x) && (event.x <= box.right + 1)) && ((box.top - 1 <= event.y) && (event.y <= box.bottom + 1))) {
-            console.log("drop",event)
-            console.log("drop",event.dataTransfer.files)
+window.window.addEventListener("drop", (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        let box = dropZone.window.getBoundingClientRect();
+        if (((box.left - 1 <= event.x) && (event.x <= box.right + 1)) && ((box.top - 1 <= event.y) && (event.y <= box.bottom + 1))) {
+            console.log("drop", event)
+            console.log("drop", event.dataTransfer.files)
+            if (DATA.currentRoom.id !== null) {
+                if (INPUT[DATA.currentRoom.id]) {
+                    INPUT[DATA.currentRoom.id]["files"] = event.dataTransfer.files
+                } else {
+                    INPUT[DATA.currentRoom.id] = {
+                        text: "",
+                        files: event.dataTransfer.files
+                    }
+                }
+            }
+            dropZone.closeWindow()
+            dropZone.window.style.border = '#1b6d85 1px dashed'
         }
-    dropZone.closeWindow()
-    dropZone.window.style.border = '#1b6d85 1px dashed'
-})
+    }
+)
 window.addEventListener("dragover", (event) => {
     event.preventDefault()
     event.stopPropagation()
@@ -47,7 +58,6 @@ window.addEventListener("dragleave", (event) => {
     event.preventDefault()
     event.stopPropagation()
 })
-
 
 
 window.addEventListener("dragend", (event) => {

@@ -325,7 +325,6 @@ overlay.addEventListener('click', (event) => {
     kickUserWindow.closeWindow()
     newRoomWindow.closeWindow()
     deleteConfirmWindow.closeWindow()
-    dropZone.closeWindow()
     overlay.classList.remove('active')
 })
 
