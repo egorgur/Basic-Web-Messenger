@@ -1,0 +1,6 @@
+from django.contrib import admin
+from messenger.models import *
+admin.site.register(Message)
+admin.site.register(Room)
+admin.site.register(RoomAdmin)
+# Register your models here.

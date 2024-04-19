@@ -1,0 +1,94 @@
+body {
+    background: #0e1117;
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 310px;
+}
+
+header {
+    /*border: #1b6d85 1px solid;*/
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    height: 38px;
+}
+
+.main__wrapper {
+    border: #1b6d85 1px solid;
+    flex-grow: 1;
+    overflow: hidden;
+    background: #061731;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.registration__window {
+    min-height: 200px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+
+}
+
+.window__container {
+    border: #1b6d85 1px solid;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.window__container form {
+    border-top: #1b6d85 1px solid;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    flex-grow: 1;
+}
+
+label {
+    height: 29px;
+    width: auto;
+}
+
+input {
+    height: 100%;
+    width: min-content;
+    background: none;
+    /*text-align: center;*/
+}
+
+footer {
+    /*border: #1b6d85 1px solid;*/
+    display: flex;
+    justify-content: center;
+    height: 38px;
+}
+
+::placeholder { /* Most modern browsers support this now. */
+    text-align: left;
+}
+
+* {
+    color: #2c7786;
+    font-family: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+    font-feature-settings: normal;
+    font-variation-settings: normal;
+    font-size: 1em;
+    /*font-size: 15px;*/
+    overflow: hidden;
+}
+
+.colors {
+    border: #1b6d85 1px solid;
+    color: #2c7786;
+    color: #e4e8ed;
+    color: #c0c9d7;
+    color: #c1cad2;
+    color: #959588;
+    background: #061731;
+    background: #0e1117;
+}

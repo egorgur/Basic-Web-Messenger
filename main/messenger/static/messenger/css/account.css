@@ -1,0 +1,81 @@
+* {
+    color: #c1cad2;
+    font-family: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+    font-feature-settings: normal;
+    font-variation-settings: normal;
+    font-size: 1em;
+    /*font-size: 15px;*/
+    overflow: hidden;
+}
+input{
+    background: none;
+}
+button{
+    background: none;
+    border: #1b6d85 1px solid;
+    padding: 0 5px 0 5px;
+}
+button:hover{
+    color: #061731;
+    background: #1b6d85;
+}
+body{
+    background: #0e1117;
+    display: flex;
+    flex-direction: column;
+}
+.main-wrapper{
+    border: #1b6d85 1px solid;
+    flex-grow: 1;
+    overflow: hidden;
+    background: #061731;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.main-wrapper__window{
+    min-height: 200px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.main-wrapper__window-wrapper{
+    flex-grow: 1;
+    border: #1b6d85 1px solid;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.window__info-wrapper{
+    border-top: #1b6d85 1px solid;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 0 10px 0 10px;
+}
+.window__account-name{
+
+}
+.window__account-change-password{
+    border: #1b6d85 1px solid;
+}
+.save-button{
+    width: 100%;
+    border: none;
+    border-top: #1b6d85 1px solid;
+}
+
+.colors {
+    border: #1b6d85 1px solid;
+    color: #2c7786;
+    color: #e4e8ed;
+    color: #c0c9d7;
+    color: #c1cad2;
+    color: #959588;
+    background: #061731;
+    background: #0e1117;
+}

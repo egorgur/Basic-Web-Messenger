@@ -1,0 +1,277 @@
+/*------------------------------*/
+* {
+    padding: 0;
+    margin: 0;
+    border: 0;
+}
+
+*, *:before, *:after {
+    -moz-box-align: stretch;
+    -webkit-box-align: stretch;
+    box-sizing: border-box;
+}
+
+:focus, :active {
+    outline: none;
+}
+
+a:focus, a:active {
+    outline: none;
+}
+
+nav, footer, header, aside, article {
+    display: block;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    font-size: 100%;
+    line-height: 1;
+    font-size: 14px;
+    -ms-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+}
+
+input, button, textarea {
+    font-family: inherit;
+}
+
+input::-ms-clear {
+    display: none;
+}
+
+button {
+    cursor: pointer;
+}
+
+button::-moz-focus-inner {
+    padding: 0;
+    border: 0;
+}
+
+a, a:visited {
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: none;
+}
+
+ul, li {
+    list-style: none;
+}
+
+img {
+    vertical-align: top;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-size: inherit;
+    font-weight: 400;
+}
+
+/*------------------------------*/
+
+header {
+    position: relative;
+    top: 0;
+    z-index: 9999;
+    padding: 20px 0;
+    margin: 5px;
+    border-bottom: 1px solid #629576;
+    background: #0c4b33;
+    width: auto;
+    max-width: 1920px;
+}
+
+footer {
+    padding: 40px 0 40px;
+    position: relative;
+    margin: 5px;
+    background: #19282c;
+    max-width: 1920px;
+}
+
+.wrapper {
+    position: relative;
+    padding: 0 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo {
+    position: relative;
+    display: inline-block;
+    /*overflow: hidden;*/
+    width: 100%;
+    height: auto;
+    max-width: 253px;
+
+}
+
+.logo a {
+    font-weight: 700;
+    font-size: 20px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    color: white;
+}
+
+#animated-text {
+    color: #c1cad2;
+}
+
+.blinking-cursor {
+    display: inline-block;
+    color: #c1cad2;
+    background: #c1cad2;
+    width: 3px;
+    height: 25px;
+    margin-left: 2px;
+    margin-right: 1.7px;
+}
+
+.textMenuButton {
+    float: right;
+    cursor: pointer;
+    display: block;
+    line-height: 48px;
+    text-align: center;
+    width: max-content;
+    background: none;
+    color: white;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.main__container {
+    margin: 0 5px;
+    width: auto;
+    flex-grow: 1;
+    border: #358e6c 2px solid;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+}
+
+.main__wrapper {
+    position: relative;
+    max-width: 1200px;
+    border: #93d7b7 1px solid;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.chats__container {
+    width: 30%;
+    overflow: hidden;
+    height: auto;
+
+}
+.search__chat__container{
+    background: cadetblue;
+    height: 55px;
+    width: 100%;
+}
+
+.chat__container {
+    width: 70%;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.user__container {
+    width: 100%;
+    overflow: hidden;
+    height: 55px;
+    background: #358e6c;
+}
+
+.dialog__container {
+    flex-grow: 1;
+    width: 100%;
+    /*border: #93d7b7 1px solid;*/
+    background: #1b202c;
+
+}
+
+.input__container {
+    width: 100%;
+    overflow: hidden;
+    height: 55px;
+    background: #358e6c;
+    display: flex;
+}
+.input__media{
+    width: 55px;
+    border: blue 1px solid;
+}
+.input__box{
+    flex-grow: 1;
+    overflow: hidden;
+    border: red 1px solid;
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+}
+.input__box label{
+    width: 100%;
+    height: 75%;
+}
+.input__box input{
+    color: white;
+    width: 100%;
+    height: 100%;
+    background: #0c4b33;
+}
+.input__emoji{
+    width: 55px;
+    border: red 1px solid;
+}
+.textMenuButton:hover {
+    color: #44b78b
+}
+
+.textGray {
+    color: #c1cad2;
+    /*color: #959588*/
+}
+
+.textGreen {
+    color: #93d7b7;
+}
+
+.background {
+    background: #0e1117;
+    display: flex;
+    flex-direction: column;
+}
+
+.block1 {
+    background: #0e1117;
+}
+
+.block2 {
+    background: #181d27;
+}
+
+.button1 {
+    background: #44b78b;
+}
+
+
+

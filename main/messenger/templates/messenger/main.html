@@ -1,0 +1,102 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="{% static 'messenger/css/styleNull.css' %}?{{ csrf_token }}">
+    <link rel="stylesheet" href="{% static 'messenger/css/main.css' %}?{{ csrf_token }}">
+    <link rel="stylesheet" href="{% static 'messenger/css/main-windows.css' %}?{{ csrf_token }}">
+    <link rel="stylesheet" href="{% static 'messenger/css/main-drop-window.css' %}?{{ csrf_token }}">
+    <title>Document</title>
+</head>
+<body>
+<header></header>
+<div class="main-wrapper">
+    <div class="columns">
+        <div class="columns__room-column">
+            <div class="groups" id="rooms"></div>
+            <div class="room-column__add-new-button" id="newRoomButton" onclick="newRoomWindow.openWindow()">new room
+            </div>
+        </div>
+        <div class="column-wrapper">
+            <div class="room-header">
+                <div class="group-name" id="groupDataDisplay"></div>
+            </div>
+            <div class="messages-wrapper" id="messages">
+            </div>
+            <div class="input-container">
+                <div class="drop-file" id="dropZoneWindow">
+                    <div class="drop-file__header">Drop file here</div>
+                </div>
+                <label for="textarea"><textarea id="input"></textarea></label>
+            </div>
+        </div>
+
+    </div>
+</div>
+<div class="group-actions-window" id="groupActionsWindow">
+    <div>
+        <text style="margin-left: 125px">Group</text>
+        <button class="close-window" onclick="GroupMenuWindow.closeWindow();overlay.classList.remove('active')">
+            &times;
+        </button>
+    </div>
+    <div class="group-window__header">
+        <div class="window__header__group-name" id="GroupMenuWindowName">TEST</div>
+    </div>
+    <div class="group-action" onclick="GroupMenuWindow.renameGroup()" id="groupRename">Rename</div>
+    <div class="group-action" onclick="GroupMenuWindow.inviteToRoom()" id="groupInvite">Invite</div>
+    <div class="group-action" onclick="GroupMenuWindow.kickFromRoom()" id="groupKick">Kick</div>
+    <div class="group-action" onclick="GroupMenuWindow.leaveRoom()" id="groupLeave">Leave</div>
+    <div class="group-action" onclick="GroupMenuWindow.deleteRoom()" id="groupDelete">Delete</div>
+</div>
+<div class="delete-confirm-window" id="deleteConfirm">
+    <div class="delete-confirm-window__info" id="deleteConfirmHeader">
+        <span>Are you sure you want to delete this room?</span>
+        <span>Room data will not be recoverable.</span>
+    </div>
+    <div class="delete-confirm-window__cancel" onclick="deleteConfirmWindow.cancel()">Cancel</div>
+    <div class="delete-confirm-window__confirm" onclick="deleteConfirmWindow.deleteRoom()">DELETE</div>
+</div>
+<div class="leave-confirm" id="leaveConfirm">
+    <div class="delete-confirm-window__info" id="leaveConfirmHeader">
+        <span>Are you sure you want to leave this room?</span>
+    </div>
+    <div class="delete-confirm-window__cancel" onclick="leaveConfirmWindow.cancel()">Cancel</div>
+    <div class="delete-confirm-window__confirm" onclick="leaveConfirmWindow.leaveRoom()">LEAVE</div>
+</div>
+<div class="rename-group-window" id="renameRoomWindow">
+    <div class="rename-header" id="renameWindowOldName">test</div>
+    <div class="input-new-name"><label><input id="renameRoomInput" type="text"></label></div>
+    <button class="save-new-room-name" id="saveNewName" onclick="RoomRenameWindow.saveNewName()">SAVE</button>
+</div>
+<div class="invite-window" id="inviteUsersToRoom">
+    <div class="invite-header" id="inviteToRoomName">Test</div>
+    <div class="all-users-div" id="inviteUsersDiv">
+    </div>
+</div>
+<div class="kick-window" id="kickWindow">
+    <div class="kick-window__header" id="kickWindowHeader">Test</div>
+    <div class="kick-window__users" id="kickWindowUsers"></div>
+</div>
+<div class="new-room" id="newRoom">
+    <div class="new-room__header">Make new room</div>
+    <div class="new-room__name">
+        <label for="input"><input type="text" placeholder="Enter new room name" id="nameNewRoomInput"></label>
+    </div>
+    <div class="new-room__users" id="userToAddToNewRoom">
+    </div>
+    <div class="new-room__save-button" onclick="newRoomWindow.saveRoom()">Create room</div>
+</div>
+<div id="overlay"></div>
+<footer></footer>
+<script>const CSRF_TOKEN = '{{ csrf_token }}';</script>
+<script src="{% static 'messenger/js/fetch.js' %}?{{ csrf_token }}"></script>
+<script src="{% static 'messenger/js/websocket.js' %}?{{ csrf_token }}"></script>
+<script src="{% static 'messenger/js/main.js' %}?{{ csrf_token }}"></script>
+<script src="{% static 'messenger/js/mainFileManagement.js' %}?{{ csrf_token }}"></script>
+</body>
+</html>

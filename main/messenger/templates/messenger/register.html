@@ -1,0 +1,35 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="{% static 'messenger/css/styleNull.css' %}">
+    <link rel="stylesheet" href="{% static 'messenger/css/registration.css' %}">
+    <title>Document</title>
+</head>
+<body>
+<header></header>
+<div class="main__wrapper">
+    <div class="registration__window">
+        <text>//////////////////////////////////////////</text>
+        <div class="window__container">
+            <text>REGISTRATION</text>
+            <form action="#">
+                <label>|<input type="text" placeholder="username" id="input_name"></label>
+                <label>|<input type="password" placeholder="password" id="input_password1"></label>
+                <label>|<input type="password" placeholder="repeat_password" id="input_password2"></label>
+                <label id="password_warning"></label>
+            </form>
+        </div>
+        <text>//////////////////////////////////////////</text>
+    </div>
+</div>
+<footer></footer>
+<script> const CSRF_TOKEN = '{{ csrf_token }}';</script>
+<script src="{% static 'messenger/js/fetch.js' %}?{{ csrf_token }}"></script>
+<script src="{% static 'messenger/js/registration.js' %}?{{ csrf_token }}"></script>
+</body>
+</html>

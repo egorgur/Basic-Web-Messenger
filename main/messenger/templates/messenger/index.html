@@ -1,0 +1,65 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <title>Css</title>
+    <link rel="stylesheet" href="{% static 'messenger/css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'messenger/css/media.css' %}">
+    <meta http-equiv="Content-type" content="text/html;charset=UTF-8"/>
+</head>
+<body class="background">
+<header>
+    <div class="wrapper">
+        <div class="header">
+            <div class="logo">
+                <a href="{% url 'messenger:index' %}" id="logo-link">
+                    <span>П</span>
+                    <span id="animated-text"></span>
+                    <span class="blinking-cursor" id="cursor"></span>
+                    <span>production</span>
+                </a>
+            </div>
+            <div class="menu">
+
+            </div>
+            <div class="mediaRefs"></div>
+        </div>
+    </div>
+</header>
+<div class="main__container">
+    <div class="main__wrapper">
+        <div class="chats__container">
+            <div class="search__chat__container"></div>
+        </div>
+        <div class="chat__container">
+            <div class="user__container"></div>
+            <div class="dialog__container"></div>
+            <div class="input__container">
+                <form action="#" method="post">
+                    <span class="input__media">
+                        <button></button>
+                    </span>
+                    <span class="input__box">
+                        <label>
+                            <input name="input_text_field" type="text" id="input__text">
+                        </label>
+                    </span>
+                    <span class="input__emoji">
+                        <button></button>
+                    </span>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<footer></footer>
+<script src="{% static 'messenger/js/app.js' %}"></script>
+<script src="{% static 'messenger/js/logo.js' %}"></script>
+</body>
+</html>
+
+
+
+
+
+

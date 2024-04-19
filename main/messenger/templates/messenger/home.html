@@ -1,0 +1,54 @@
+{% extends 'messenger/base.html' %}
+{% block title %} Home {% endblock title %}
+{% block content %}
+    <h1 style="margin-top: 3px;">DiscusIt Home Page</h1>
+    <ul>
+        {% for group in groups %}
+            <div id="{{ group.uuid }}">
+                <li><a>{{ group.name }}</a></li>
+                {% if request.user in group.members.all %}
+                    <button id="leave-{{ group.uuid }}" class="group_option" value="leave_group {{ group.uuid }}">\
+                        Leave
+                    </button>
+                {% else %}
+                    <button id="join-{{ group.uuid }}" class="group_option" value="join_group {{ group.uuid }}">\
+                        Join
+                    </button>
+                {% endif %}
+                {% if request.user in group.members.all %}
+                    <button id="open-{{ group.uuid }}" class="group_option" value="open_group {{ group.uuid }}">\
+                        Open
+                    </button>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+    </ul>
+{% endblock content %}
+{% block script %}
+
+    <script>
+        let URL = window.location.href
+        URL = URL.split('/')
+        URL = 'ws://'+URL[2]+'/ws'
+        console.log(URL)
+        const websocket = new WebSocket(URL)
+
+        websocket.onopen = function (event) {
+            console.log('client says connection opened')
+            websocket.send(JSON.stringify({
+                message: 'Hello from Js client'
+            }))
+        }
+
+        websocket.onmessage = function (event) {
+            try {
+                console.log(event);
+            } catch (e) {
+                console.log('Error:', e.message);
+            }
+        };
+
+
+    </script>
+{% endblock script %}

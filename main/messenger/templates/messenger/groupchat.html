@@ -1,0 +1,23 @@
+{% extends 'messenger/base.html'%} 
+{% block title%} Chat Room{%endblock title%}
+{% block content%}
+<textarea id="chat-log" cols="100" rows="20"></textarea><br>
+<input id="chat-message-input" type="text" size="100"><br>
+<input id="chat-message-submit" type="button" value="Send">
+
+<script>
+    document.querySelector('#chat-log').value = ""
+    {% for message_event in message_and_event_list%}
+ 
+   document.querySelector('#chat-log').value += ( {{message_event}}  + '\n');
+{%endfor%}
+</script>
+
+
+<h3>Group Members</h3>
+<ul id="members">
+{% for member in group_members%}
+<li id="members-{{member.username}}">{{member}}</li>
+{%endfor%}
+</ul>
+{%endblock content%}
