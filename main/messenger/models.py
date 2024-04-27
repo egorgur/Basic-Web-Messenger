@@ -17,6 +17,7 @@ class RoomAdmin(models.Model):
     def __str__(self):
         return "Admins of " + str(self.room_id)
 
+
 class Message(models.Model):
     message = models.TextField(max_length=200)
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -26,4 +27,19 @@ class Message(models.Model):
     def __str__(self):
         return "Message: " + self.message
 
+
+class Media(models.Model):
+    file_name = models.CharField(max_length=100)
+    file = models.FileField()
+
+    def __str__(self):
+        return self.file_name
+
+
+class MessageMedia(models.Model):
+    message = models.ForeignKey(Message, on_delete=models.CASCADE)
+    files = models.ManyToManyField(Media)
+
+    def __str__(self):
+        return "message_" + str(self.message.id) + "_media"
 # Create your models here.

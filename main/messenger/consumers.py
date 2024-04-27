@@ -142,19 +142,23 @@ class Consumer(AsyncConsumer):
                             user = await database_sync_to_async(User.objects.get)(pk=received['user_id'])
                             await database_sync_to_async(room.users.add)(user)
                             room_name = "Room_group_" + str(received["room_id"])
-                            channel_name = user_channels[received["user_id"]]
-                            await self.channel_layer.group_add(
-                                room_name, channel_name
-                            )
-                            answer = {
-                                "success": True,
-                                "reload": "room",
-                            }
-                            channel_message = {
-                                "type": 'websocket.receive',
-                                "text": json.dumps({"request": "groups"})
-                            }
-                            await self.channel_layer.send(channel=channel_name, message=channel_message)
+                            try:
+                                channel_name = user_channels[received["user_id"]]
+                                await self.channel_layer.group_add(
+                                    room_name, channel_name
+                                )
+                                channel_message = {
+                                    "type": 'websocket.receive',
+                                    "text": json.dumps({"request": "groups"})
+                                }
+                                await self.channel_layer.send(channel=channel_name, message=channel_message)
+                            except:
+                                ...
+                            finally:
+                                answer = {
+                                    "success": True,
+                                    "reload": "room",
+                                }
                 except Exception as e:
                     answer = {
                         "error": True,
@@ -178,19 +182,23 @@ class Consumer(AsyncConsumer):
                         user = await database_sync_to_async(User.objects.get)(pk=received['user_id'])
                         await database_sync_to_async(room.users.remove)(user)
                         room_name = "Room_group_" + str(received["room_id"])
-                        channel_name = user_channels[received["user_id"]]
-                        await self.channel_layer.group_discard(
-                            room_name, channel_name
-                        )
-                        channel_message = {
-                            "type": 'websocket.receive',
-                            "text": json.dumps({"request": "groups"})
-                        }
-                        answer = {
-                            "success": True,
-                            "reload": "room",
-                        }
-                        await self.channel_layer.send(channel=channel_name, message=channel_message)
+                        try:
+                            channel_name = user_channels[received["user_id"]]
+                            await self.channel_layer.group_discard(
+                                room_name, channel_name
+                            )
+                            channel_message = {
+                                "type": 'websocket.receive',
+                                "text": json.dumps({"request": "groups"})
+                            }
+                            await self.channel_layer.send(channel=channel_name, message=channel_message)
+                        except:
+                            ...
+                        finally:
+                            answer = {
+                                "success": True,
+                                "reload": "room",
+                            }
                     else:
                         answer = {
                             "error": True,

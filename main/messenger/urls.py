@@ -1,5 +1,6 @@
 from django.urls import path, include
-
+from django.conf import settings
+from django.conf.urls.static import static
 from . import views
 
 urlpatterns = [
@@ -13,3 +14,6 @@ urlpatterns = [
     path("account/password/save", views.save_password, name="save_password"),
     path("files/", views.files, name="files"),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_ROOT, document_root=settings.MEDIA_ROOT)

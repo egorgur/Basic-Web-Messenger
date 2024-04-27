@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
+from django.core.files.storage import FileSystemStorage
 
 import dataclasses
 from dataclasses import dataclass
@@ -70,10 +71,11 @@ def save_name(request):
 
 def files(request):
     if request.method == "POST":
-        # uploaded_file = request.FILES.get(0)
-        # print("File_name",uploaded_file.name)
-        # print("File_size",uploaded_file.size)
-        print(request.FILES['file'])
+        uploaded_file = request.FILES['file']
+        print("File_name",uploaded_file.name)
+        print("File_size",uploaded_file.size)
+        fs = FileSystemStorage()
+        fs.save(uploaded_file.name, uploaded_file)
         answer = {
             "files_system": "test",
         }
