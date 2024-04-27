@@ -52,7 +52,6 @@ INPUT.textInputElement.addEventListener('keydown', function (e) {
                 files: []
             }
         }
-
     }
     if (keyCode === 13 && !e.shiftKey) {
         e.preventDefault();
@@ -77,6 +76,12 @@ function sortMessagesByTime() {
 
 function sendMessage() {
     if (DATA.currentRoom.id !== null) {
+         if (INPUT[DATA.currentRoom.id]){
+            for (const file in INPUT[DATA.currentRoom.id]["files"]){
+                console.log(INPUT[DATA.currentRoom.id]["files"][0])
+                uploadFile(INPUT[DATA.currentRoom.id]["files"][0])
+            }
+        }
         websocket.send(JSON.stringify({
             message: INPUT.textInputElement.value,
             room: DATA.currentRoom.id,
@@ -289,8 +294,14 @@ function createMessageDiv(message) {
 function chooseRoom(id) {
     if (DATA.currentRoom.id !== id) {
         DATA.currentRoom.id = id
+        if (INPUT[DATA.currentRoom.id]){
+            INPUT.textInputElement.value = INPUT[DATA.currentRoom.id]['text']
+        } else {
+            INPUT.textInputElement.value = ""
+        }
         REQUESTS.requestRoomData()
         showRoomName()
+        fileInputWindow.openWindow()
     }
 }
 
@@ -461,7 +472,7 @@ const RoomRenameWindow = {
 
 const inviteUsersWindow = {
     open: false,
-    inviteMenuWindow: document.getElementById("inviteUsersToRoom"),
+    window: document.getElementById("inviteUsersToRoom"),
     inviteToRoomName: document.getElementById("inviteToRoomName"),
     inviteUsersDiv: document.getElementById("inviteUsersDiv"),
     openWindow() {
@@ -471,13 +482,13 @@ const inviteUsersWindow = {
             inviteUsersWindow.closeWindow()
             GroupMenuWindow.openWindow()
         }
-        this.inviteMenuWindow.classList.add("active")
+        this.window.classList.add("active")
         this.showUsersToInvite()
         overlay.classList.add("active")
         this.open = true
     },
     closeWindow() {
-        this.inviteMenuWindow.classList.remove('active')
+        this.window.classList.remove('active')
         this.open = false
     },
     showUsersToInvite() {

@@ -69,14 +69,15 @@ def save_name(request):
 
 
 def files(request):
-    print(request.POST)
-    print(request.FILES)
-    answer = {
-        "files_system": "test",
-        "post": request.POST,
-        "files": request.FILES,
-    }
-    return JsonResponse(answer)
+    if request.method == "POST":
+        # uploaded_file = request.FILES.get(0)
+        # print("File_name",uploaded_file.name)
+        # print("File_size",uploaded_file.size)
+        print(request.FILES['file'])
+        answer = {
+            "files_system": "test",
+        }
+        return JsonResponse(answer)
 
 def save_password(request):
     if request.method == "GET":

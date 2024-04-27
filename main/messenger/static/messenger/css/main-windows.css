@@ -292,6 +292,26 @@
     border: #1b6d85 1px solid;
 }
 
+/*---------------Files-Window-----------------*/
+.files{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+    border: #1b6d85 1px dashed;
+    position: absolute;
+    left: 0;
+    bottom: 100%;
+    /*height: 40px;*/
+}
+.filePreview{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 5px;
+    height: 40px;
+    background: darkgoldenrod;
+}
 /*--------------------------------*/
 #overlay {
     position: fixed;

@@ -11,5 +11,5 @@ urlpatterns = [
     path("account/save", views.save_name, name="accounts"),
     path("account/password/", views.change_password, name="change_password"),
     path("account/password/save", views.save_password, name="save_password"),
-    path("messenger/files", views.files, name="files"),
+    path("files/", views.files, name="files"),
 ]
