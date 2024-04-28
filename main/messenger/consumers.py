@@ -53,6 +53,10 @@ class Consumer(AsyncConsumer):
             case "none":
                 received['status'] = 'no request'
                 print('answered: ', json.dumps(received))
+                update_request = {
+                    "text": json.dumps({"connect": "true"})
+                }
+                await self.group_receive(update_request)
                 await self.send({
                     "type": "websocket.send",
                     "text": json.dumps(received)
@@ -79,6 +83,7 @@ class Consumer(AsyncConsumer):
                 room_messages = await database_sync_to_async(list)(
                     await database_sync_to_async(
                         Message.objects.filter(room_id=received["room_id"]).values)())
+                room_administration = await database_sync_to_async(RoomAdmin.objects.get)(room_id=received["room_id"])
                 for i in range(len(room_messages)):
                     if room_messages[i]["has_media"]:
                         await database_sync_to_async(print)(
@@ -88,11 +93,17 @@ class Consumer(AsyncConsumer):
                             await database_sync_to_async(
                                 Media.objects.filter(message_id=room_messages[i]["id"]).values)())
                     room_messages[i]['timestamp'] = room_messages[i]['timestamp'].strftime("%Y%m%d%H%M%S")
-                users = await database_sync_to_async(Room.objects.get)(id=received["room_id"])
-                users_data = await database_sync_to_async(list)(users.users.all().values('id', 'username'))
+                room = await database_sync_to_async(Room.objects.get)(id=received["room_id"])
+                room_owner_id = room_administration.owner
+
+                users_data = await database_sync_to_async(list)(room.users.all().values('id', 'username'))
+                room_rules = room.rules
                 room_data = {
+                    "roomRules": room_rules,
                     'messages': room_messages,
                     'users': users_data,
+                    "ownerId": None,
+                    "admins": [],
                 }
                 print('answered: send all room messages')
                 json_data = json.dumps(room_data)
@@ -107,6 +118,14 @@ class Consumer(AsyncConsumer):
                 #     "type": "websocket.send",
                 #     "text": json.dumps(received)
                 # })
+            case "update_message":
+                message_id = received["message_id"]
+                room_id = received["room_id"]
+                await self.group_send(received)
+                ...
+            case "group_receive":
+                print("group_receive")
+                ...
             case "group_send":
                 group_answer = {
                     "type": "group_send",
@@ -286,7 +305,8 @@ class Consumer(AsyncConsumer):
                     admin = await database_sync_to_async(User.objects.get)(pk=received["creator"])
                     await database_sync_to_async(room.users.add)(admin)
                     room_admins = await database_sync_to_async(RoomAdmin.objects.create)(
-                        room_id=room
+                        room_id=room,
+                        owner=received["creator"],
                     )
                     await database_sync_to_async(room_admins.admins.add)(admin)
                     for user_data in received['users']:
@@ -337,7 +357,7 @@ class Consumer(AsyncConsumer):
     async def message_handler(self, message_data):
         print("Message Data", message_data)
         if len(message_data['message']) > 0:
-            room = (await database_sync_to_async(Room.objects.get)(id=message_data['room']))
+            room = (await database_sync_to_async(Room.objects.get)(id=message_data['room_id']))
             message = await database_sync_to_async(Message.objects.create)(
                 message=message_data['message'][0:200],
                 room_id=room,
@@ -351,20 +371,36 @@ class Consumer(AsyncConsumer):
                     "yourMessage": {
                         "id": message.id,
                         "message": message.message,
-                        "room_id": message_data['room'],
+                        "room_id": message_data['room_id'],
                         "author_id": self.user.id,
                         "has_media": message_data['has_media'],
                     }
                 })
             })
-            await self.update_message(message.id, message_data['room'])
+            if not message_data['has_media']:
+                print("no media")
+                room_name = "Room_group_" + str(message_data['room_id'])
+                message_data["message_id"] = message.id
+                group_request = {
+                    "type": "update_message_call",
+                    "text": json.dumps(message_data),
+                }
+                await self.channel_layer.group_send(
+                    room_name, group_request
+                )
 
-    async def update_message(self, message_id, room_id=None):
+    async def update_message_call(self, received):
+        print("update message call")
+        request = json.loads(received['text'])
+        print(request, type(request))
+        message_id = request["message_id"]
+        room_id = request["room_id"]
+        await self.update_message(message_id, room_id)
+
+    async def update_message(self, message_id, room_id):
         await self.groups_check()
-        # print(self.user.rooms_list)
-        # print("room", list(filter(lambda r: r['id'] == room_id, self.user.rooms_list)))
-        room = list(filter(lambda r: r['id'] == room_id, self.user.rooms_list))[0]
-        room_name = "Room_group_" + str(room['id'])
+        room = await database_sync_to_async(Room.objects.get)(pk=room_id)
+        room_name = "Room_group_" + str(room.id)
         message = await database_sync_to_async(list)(
             await database_sync_to_async(
                 Message.objects.filter(id=message_id).values)())
@@ -379,13 +415,18 @@ class Consumer(AsyncConsumer):
         answer = {
             'newMessage': message[0],
         }
-        group_answer = {
-            "type": "group_send",
+
+        await self.send({
+            "type": "websocket.send",
             "text": json.dumps(answer),
-        }
-        await self.channel_layer.group_send(
-            room_name, group_answer
-        )
+        })
+        # group_answer = {
+        #     "type": "group_send",
+        #     "text": json.dumps(answer),
+        # }
+        # await self.channel_layer.group_send(
+        #     room_name, group_answer
+        # )
 
     async def group_send(self, answer):
         print('answer ', answer)
@@ -393,6 +434,14 @@ class Consumer(AsyncConsumer):
             "type": "websocket.send",
             "text": answer["text"]
         })
+
+    async def group_receive(self, request):
+        print("group received request: ", request)
+        # await self.update_message()
+        # await self.group_send({
+        #     "type": "ping",
+        #     "text": request["text"]
+        # })
 
     async def websocket_disconnect(self, event):
         print("websocket disconnected", event)

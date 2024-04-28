@@ -13,6 +13,7 @@ class Room(models.Model):
 
 class RoomAdmin(models.Model):
     room_id = models.ForeignKey(Room, on_delete=models.CASCADE)
+    owner = models.IntegerField(null=True)
     admins = models.ManyToManyField(User)
 
     def __str__(self):
@@ -37,4 +38,8 @@ class Media(models.Model):
 
     def __str__(self):
         return self.file_name
+
+    def delete(self, *args, **kwargs):
+        self.file.delete()
+        super().delete(*args,**kwargs)
 # Create your models here.

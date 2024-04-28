@@ -13,6 +13,9 @@ const DATA = {
     currentRoom: {
         id: null,
         name: '',
+        ownerId: null,
+        admins: [],
+        rules: {},
         users: [],
         messages: [],
         text: '',
@@ -67,7 +70,7 @@ INPUT.textInputElement.addEventListener('keydown', function (e) {
     }
     if (keyCode === 13 && !e.shiftKey) {
         e.preventDefault();
-        sendMessage(DATA.currentRoom.id)
+        sendMessage()
         INPUT.textInputElement.value = ""
     }
 });
@@ -90,9 +93,9 @@ function sendMessage() {
     if (DATA.currentRoom.id !== null) {
         websocket.send(JSON.stringify({
             message: INPUT.textInputElement.value,
-            room: DATA.currentRoom.id,
+            room_id: DATA.currentRoom.id,
             request: "send_message",
-            has_media: INPUT.getFiles(DATA.currentRoom.id) !== [],
+            has_media: INPUT.getFiles(DATA.currentRoom.id).length > 0,
         }))
     }
 
@@ -118,7 +121,8 @@ const REQUESTS = {
             }
         ))
     },
-    requestMessage(messageId){},
+    requestMessage(messageId) {
+    },
     requestMyUser() {
         console.log('from-user', {request: 'user'})
         websocket.send(JSON.stringify(
@@ -241,6 +245,15 @@ function webSocketDataHandler(data) {
         showRooms()
         showRoomName()
     }
+    if (data['roomRules']) {
+        DATA.currentRoom.rules = data["roomRules"]
+    }
+    if (data["admins"]){
+        DATA.currentRoom.admins = data["admins"]
+    }
+    if (data["ownerId"]){
+        DATA.currentRoom.ownerId = data["ownerId"]
+    }
     if (data['users']) {
         DATA.currentRoom.users = data['users']
         if (inviteUsersWindow.open) {
@@ -268,8 +281,10 @@ function webSocketDataHandler(data) {
         }
     }
     if (data['newMessage']) {
-        DATA.currentRoom.messages.push(data['newMessage'])
-        showMessages()
+        if (data["newMessage"]["room_id_id"] === DATA.currentRoom.id) {
+            DATA.currentRoom.messages.push(data['newMessage'])
+            showMessages()
+        }
     }
     if (data['allUsers']) {
         DATA.allUsers = data['allUsers']
@@ -277,8 +292,8 @@ function webSocketDataHandler(data) {
     if (data['reload']) {
         reload(data['reload'])
     }
-
 }
+
 function showRooms() {
     roomsDiv.replaceChildren();
     for (const room in DATA.rooms) {
@@ -314,6 +329,8 @@ function createMessageDiv(message) {
             div.innerHTML += "<div>" + "<video style='max-width: 400px' src=\'" + mediaHref + "\' controls/>" + "</div>"
         } else if (["jpg", "jpeg", "png", "gif"].find(value => value === format)) {
             div.innerHTML += "<div>" + "<img style='max-width: 400px' src=\'" + mediaHref + "\' alt=''/>" + "</div>"
+        } else if (["waw", "mp3"].find(value => value === format)) {
+            div.innerHTML += "<div>" + "<audio style='' src=\'" + mediaHref + "\' controls/>" + "</div>"
         } else {
             div.innerHTML +=
                 "<div style='min-height: 40px; margin: 5px 0;' class=\'flex-r a-c\'>"
@@ -371,6 +388,7 @@ overlay.addEventListener('click', (event) => {
     kickUserWindow.closeWindow()
     newRoomWindow.closeWindow()
     deleteConfirmWindow.closeWindow()
+    setRulesWindow.closeWindow()
     overlay.classList.remove('active')
 })
 
@@ -389,6 +407,10 @@ const GroupMenuWindow = {
     renameGroup() {
         this.closeWindow()
         RoomRenameWindow.openWindow()
+    },
+    setRules() {
+        this.closeWindow()
+        setRulesWindow.openWindow()
     },
     inviteToRoom() {
         REQUESTS.requestAllUsers()
@@ -501,6 +523,61 @@ const RoomRenameWindow = {
     },
     closeWindow() {
         this.roomMenuWindow.classList.remove('active')
+        this.open = false
+    },
+}
+
+const setRulesWindow = {
+    open: false,
+    window: document.getElementById("setRulesWindow"),
+    header: document.getElementById("setRulesWindowHeader"),
+    rules: {
+        userCanPost: {
+            element: document.getElementById("ruleUserCanPost"),
+            value: true,
+        },
+        userCanInvite: {
+            element: document.getElementById("ruleUserCanPost"),
+            value: true,
+        },
+        userCanKick: {
+            element: document.getElementById("ruleUserCanPost"),
+            value: true,
+        },
+        ruleAdminCanAddAdmins:{
+            element: document.getElementById("ruleAdminCanAddAdmins"),
+            value: true,
+        },
+        ruleAdminCanRemoveAdmins:{
+            element: document.getElementById("ruleAdminCanRemoveAdmins"),
+            value: true,
+        },
+    },
+
+    rulesListDisplay: document.getElementById("setRulesWindowList"),
+    openWindow() {
+        this.open = true
+        this.showRules()
+        this.window.classList.add("active")
+        this.header.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + 'Rules ' + DATA.currentRoom.name + "</span>"
+        const button = this.header.getElementsByTagName('button')
+        button.item(0).onclick = function () {
+            setRulesWindow.closeWindow()
+            GroupMenuWindow.openWindow()
+        }
+    },
+    showRules() {
+        if (DATA.currentRoom.rules !== "none") {
+            for (const rule in DATA.currentRoom.rules) {
+                const value = DATA.currentRoom.rules[rule]
+                console.log("rule", rule, value)
+            }
+        } else {
+
+        }
+    },
+    closeWindow() {
+        this.window.classList.remove("active")
         this.open = false
     },
 }

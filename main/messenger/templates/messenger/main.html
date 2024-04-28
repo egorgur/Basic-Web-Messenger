@@ -29,13 +29,13 @@
             </div>
             <div class="input-container">
                 <div class="files" id="files">
-{#                <div class="filePreview">#}
-{#                </div>#}
-            </div>
+                    {#                <div class="filePreview">#}
+                    {#                </div>#}
+                </div>
                 <div class="drop-file" id="dropZoneWindow">
                     <div class="drop-file__header">Drop file here</div>
                 </div>
-                <label for="textarea"><textarea id="input"></textarea></label>
+                <label for="input"><textarea id="input"></textarea></label>
             </div>
         </div>
 
@@ -52,6 +52,7 @@
         <div class="window__header__group-name" id="GroupMenuWindowName">TEST</div>
     </div>
     <div class="group-action" onclick="GroupMenuWindow.renameGroup()" id="groupRename">Rename</div>
+    <div class="group-action" onclick="GroupMenuWindow.setRules()" id="groupInvite">Rules</div>
     <div class="group-action" onclick="GroupMenuWindow.inviteToRoom()" id="groupInvite">Invite</div>
     <div class="group-action" onclick="GroupMenuWindow.kickFromRoom()" id="groupKick">Kick</div>
     <div class="group-action" onclick="GroupMenuWindow.leaveRoom()" id="groupLeave">Leave</div>
@@ -76,6 +77,38 @@
     <div class="rename-header" id="renameWindowOldName">test</div>
     <div class="input-new-name"><label><input id="renameRoomInput" type="text"></label></div>
     <button class="save-new-room-name" id="saveNewName" onclick="RoomRenameWindow.saveNewName()">SAVE</button>
+</div>
+<div class="set-rules-window" id="setRulesWindow">
+    <div class="set-rules-window__header a-c j-c" id="setRulesWindowHeader">Test</div>
+    <div class="set-rules-window__check-box" id="setRulesWindowListUser">
+        <div style="margin-left: 10px">User</div>
+        <div class="set-rules-window__rule">
+            <label for="ruleUserCanPost">Can post</label>
+            <input type="checkbox" id="ruleUserCanPost" name="scales" checked/>
+        </div>
+        <div class="set-rules-window__rule">
+            <label for="ruleUserCanInvite">Can invite</label>
+            <input type="checkbox" id="ruleUserCanInvite" name="scales" checked/>
+        </div>
+        <div class="set-rules-window__rule">
+            <label for="ruleUserCanKick">Can kick</label>
+            <input type="checkbox" id="ruleUserCanKick" name="scales" checked/>
+        </div>
+    </div>
+    <div class="set-rules-window__check-box" id="setRulesWindowListAdmin">
+        <div style="margin-left: 10px">Admin:</div>
+        <div class="set-rules-window__rule">
+            <label for="ruleAdminCanAddAdmins">Can add new admins</label>
+            <input type="checkbox" id="ruleAdminCanAddAdmins" name="scales" checked/>
+        </div>
+        <div class="set-rules-window__rule">
+            <label for="ruleAdminCanRemoveAdmins">Can remove admins</label>
+            <input type="checkbox" id="ruleAdminCanRemoveAdmins" name="scales" checked/>
+        </div>
+    </div>
+    <div class="set-rules-window__admins">
+        
+    </div>
 </div>
 <div class="invite-window" id="inviteUsersToRoom">
     <div class="invite-header" id="inviteToRoomName">Test</div>

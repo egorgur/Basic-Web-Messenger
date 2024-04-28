@@ -95,7 +95,21 @@ def files(request):
             answer = {
                 "files_system": "test",
             }
+            room_name = "Room_group_" + str(room_id)
+            channel = get_channel_layer()
+            update_request = {
+                # "request": "update_message",
+                "message_id": message_id,
+                "room_id": room_id,
+            }
+            group_request = {
+                "type": "update_message_call",
+                "text": json.dumps(update_request),
+            }
+            async_to_sync(channel.group_send)(room_name, group_request)
+            print("channel",channel)
         except Exception as e:
+            print("error", e)
             answer = {
                 "error": True,
                 "data": repr(e)
