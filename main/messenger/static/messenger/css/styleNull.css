@@ -70,3 +70,21 @@ h1, h2, h3, h4, h5, h6 {
     font-size: inherit;
     font-weight: 400;
 }
+
+.flex-r {
+    display: flex;
+    flex-direction: row
+}
+
+.flex-c {
+    display: flex;
+    flex-direction: row;
+}
+
+.j-c {
+    justify-content: center;
+}
+
+.a-c {
+    align-items: center;
+}

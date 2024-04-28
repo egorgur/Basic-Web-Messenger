@@ -52,8 +52,6 @@ window.window.addEventListener("drop", (event) => {
         event.stopPropagation()
         let box = dropZone.window.getBoundingClientRect();
         if (((box.left - 1 <= event.x) && (event.x <= box.right + 1)) && ((box.top - 1 <= event.y) && (event.y <= box.bottom + 1))) {
-            console.log("drop", event)
-            console.log("drop", event.dataTransfer.files)
             if (DATA.currentRoom.id !== null) {
                 if (INPUT[DATA.currentRoom.id]) {
                     INPUT[DATA.currentRoom.id]["files"].push(event.dataTransfer.files[0])
@@ -101,11 +99,14 @@ window.addEventListener("dragend", (event) => {
     dropZone.closeWindow()
 })
 
-function uploadFile(file) {
+function uploadFile(file, messageId) {
+    fileInputWindow.showFiles()
     const url = "http://" + window.location.host + "/messenger/files/"
 
     let form = new FormData();
     form.append("file", file)
+    form.append("roomId", DATA.currentRoom.id)
+    form.append("messageId", messageId)
     form.append("enctype", "multipart/form-data")
     console.log("form",...form)
     const xhr = new XMLHttpRequest();
@@ -128,6 +129,6 @@ function uploadFile(file) {
     xhr.setRequestHeader('X-CSRFToken', CSRF_TOKEN);
 
     xhr.send(form);
-
+    console.log(xhr.response)
 }
 

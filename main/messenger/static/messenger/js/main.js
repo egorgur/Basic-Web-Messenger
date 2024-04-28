@@ -40,11 +40,23 @@ const INPUT = {
      *     files: [] of files
      * }
      */
+    getFiles(roomId) {
+        if (INPUT[roomId]) {
+            return this[roomId]["files"]
+        }
+    },
+    clearFileInput(roomId) {
+        this[roomId]["files"] = []
+        fileInputWindow.showFiles()
+    },
+    clearTextInput(roomId) {
+        this[roomId]["text"] = ""
+    },
 }
 INPUT.textInputElement.addEventListener('keydown', function (e) {
     const keyCode = e.which || e.keyCode;
-    if (DATA.currentRoom.id !== null){
-        if (INPUT[DATA.currentRoom.id]){
+    if (DATA.currentRoom.id !== null) {
+        if (INPUT[DATA.currentRoom.id]) {
             INPUT[DATA.currentRoom.id]["text"] = INPUT.textInputElement.value
         } else {
             INPUT[DATA.currentRoom.id] = {
@@ -76,16 +88,11 @@ function sortMessagesByTime() {
 
 function sendMessage() {
     if (DATA.currentRoom.id !== null) {
-         if (INPUT[DATA.currentRoom.id]){
-            for (const file in INPUT[DATA.currentRoom.id]["files"]){
-                console.log(INPUT[DATA.currentRoom.id]["files"][0])
-                uploadFile(INPUT[DATA.currentRoom.id]["files"][0])
-            }
-        }
         websocket.send(JSON.stringify({
             message: INPUT.textInputElement.value,
             room: DATA.currentRoom.id,
-            request: "send_message"
+            request: "send_message",
+            has_media: INPUT.getFiles(DATA.currentRoom.id) !== [],
         }))
     }
 
@@ -111,6 +118,7 @@ const REQUESTS = {
             }
         ))
     },
+    requestMessage(messageId){},
     requestMyUser() {
         console.log('from-user', {request: 'user'})
         websocket.send(JSON.stringify(
@@ -249,6 +257,16 @@ function webSocketDataHandler(data) {
     if (data['user']) {
         DATA.userData = data['user']
     }
+    if (data["yourMessage"]) {
+        if (INPUT[DATA.currentRoom.id]["files"].length !== 0) {
+            const messageId = data["yourMessage"].id
+            for (const file in INPUT[DATA.currentRoom.id]["files"]) {
+                console.log("file ", INPUT[DATA.currentRoom.id]["files"][file])
+                uploadFile(INPUT[DATA.currentRoom.id]["files"][file], messageId)
+            }
+            INPUT.clearFileInput(DATA.currentRoom.id)
+        }
+    }
     if (data['newMessage']) {
         DATA.currentRoom.messages.push(data['newMessage'])
         showMessages()
@@ -261,7 +279,6 @@ function webSocketDataHandler(data) {
     }
 
 }
-
 function showRooms() {
     roomsDiv.replaceChildren();
     for (const room in DATA.rooms) {
@@ -286,7 +303,25 @@ function createMessageDiv(message) {
     div.className = "message"
     div.id = "message_" + message.id
     const Author = DATA.allUsers.find((user) => user.id === message.author_id_id)
-    div.innerHTML = "<div class=\"message-author\">" + Author.username + "</div><div class=\"message-body\">" + message.message + "</div>"
+    div.innerHTML = "<div class=\"message-author\">" + Author.username +
+        "</div><div class=\"message-body\">" + message.message + "</div>"
+    for (const file in message["media"]) {
+        const fileData = message["media"][file]
+        const format = fileData['file'].split('.').pop()
+        console.log("format ", format)
+        const mediaHref = "http://" + window.location.host + "/media/" + fileData['file']
+        if (["mp4", "webm"].find(value => value === format)) {
+            div.innerHTML += "<div>" + "<video style='max-width: 400px' src=\'" + mediaHref + "\' controls/>" + "</div>"
+        } else if (["jpg", "jpeg", "png", "gif"].find(value => value === format)) {
+            div.innerHTML += "<div>" + "<img style='max-width: 400px' src=\'" + mediaHref + "\' alt=''/>" + "</div>"
+        } else {
+            div.innerHTML +=
+                "<div style='min-height: 40px; margin: 5px 0;' class=\'flex-r a-c\'>"
+                + "<a style='max-width: 400px;' href=\'" + mediaHref + "\'> File: " + fileData["file_name"] + "</a>"
+                + "</div>"
+        }
+
+    }
     message.message;
     messageDiv.appendChild(div);
 }
@@ -294,7 +329,7 @@ function createMessageDiv(message) {
 function chooseRoom(id) {
     if (DATA.currentRoom.id !== id) {
         DATA.currentRoom.id = id
-        if (INPUT[DATA.currentRoom.id]){
+        if (INPUT[DATA.currentRoom.id]) {
             INPUT.textInputElement.value = INPUT[DATA.currentRoom.id]['text']
         } else {
             INPUT.textInputElement.value = ""

@@ -4,6 +4,11 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
 from django.core.files.storage import FileSystemStorage
 
+from channels.layers import get_channel_layer
+
+from .models import Media
+from asgiref.sync import async_to_sync
+
 import dataclasses
 from dataclasses import dataclass
 
@@ -71,15 +76,32 @@ def save_name(request):
 
 def files(request):
     if request.method == "POST":
-        uploaded_file = request.FILES['file']
-        print("File_name",uploaded_file.name)
-        print("File_size",uploaded_file.size)
-        fs = FileSystemStorage()
-        fs.save(uploaded_file.name, uploaded_file)
-        answer = {
-            "files_system": "test",
-        }
+        try:
+            uploaded_file = request.FILES['file']
+            message_id = request.POST['messageId']
+            room_id = request.POST['roomId']
+            print("message_id ", message_id)
+            print("room_id ", room_id)
+            print("File_name", uploaded_file.name)
+            print("File_size", uploaded_file.size)
+            fs = FileSystemStorage()
+            fs.save(uploaded_file.name, uploaded_file)
+            file = Media.objects.create(
+                message_id=message_id,
+                file_name=uploaded_file.name,
+                file=uploaded_file
+            )
+            file.save()
+            answer = {
+                "files_system": "test",
+            }
+        except Exception as e:
+            answer = {
+                "error": True,
+                "data": repr(e)
+            }
         return JsonResponse(answer)
+
 
 def save_password(request):
     if request.method == "GET":

@@ -3,7 +3,7 @@ import json
 from channels.consumer import AsyncConsumer
 from channels.exceptions import StopConsumer
 
-from .models import Room, RoomAdmin, Message, User
+from .models import Room, RoomAdmin, Message, User, Media
 from channels.db import database_sync_to_async
 
 user_channels = {}
@@ -80,6 +80,13 @@ class Consumer(AsyncConsumer):
                     await database_sync_to_async(
                         Message.objects.filter(room_id=received["room_id"]).values)())
                 for i in range(len(room_messages)):
+                    if room_messages[i]["has_media"]:
+                        await database_sync_to_async(print)(
+                            await database_sync_to_async(
+                                Media.objects.filter(message_id=room_messages[i]["id"]).values)())
+                        room_messages[i]["media"] = await database_sync_to_async(list)(
+                            await database_sync_to_async(
+                                Media.objects.filter(message_id=room_messages[i]["id"]).values)())
                     room_messages[i]['timestamp'] = room_messages[i]['timestamp'].strftime("%Y%m%d%H%M%S")
                 users = await database_sync_to_async(Room.objects.get)(id=received["room_id"])
                 users_data = await database_sync_to_async(list)(users.users.all().values('id', 'username'))
@@ -334,23 +341,40 @@ class Consumer(AsyncConsumer):
             message = await database_sync_to_async(Message.objects.create)(
                 message=message_data['message'][0:200],
                 room_id=room,
-                author_id=self.user
+                author_id=self.user,
+                has_media=message_data['has_media'],
             )
             await database_sync_to_async(message.save)()
-            await database_sync_to_async(print)('newMessageId', message.id)
-            await self.update_message(message_data['room'], message.id)
+            await self.send({
+                "type": "websocket.send",
+                "text": json.dumps({
+                    "yourMessage": {
+                        "id": message.id,
+                        "message": message.message,
+                        "room_id": message_data['room'],
+                        "author_id": self.user.id,
+                        "has_media": message_data['has_media'],
+                    }
+                })
+            })
+            await self.update_message(message.id, message_data['room'])
 
-    async def update_message(self, room_id, message_id):
+    async def update_message(self, message_id, room_id=None):
         await self.groups_check()
-        print("room_id", room_id)
-        print("message_id", room_id)
-        print(self.user.rooms_list)
-        print("room", list(filter(lambda r: r['id'] == room_id, self.user.rooms_list)))
+        # print(self.user.rooms_list)
+        # print("room", list(filter(lambda r: r['id'] == room_id, self.user.rooms_list)))
         room = list(filter(lambda r: r['id'] == room_id, self.user.rooms_list))[0]
         room_name = "Room_group_" + str(room['id'])
         message = await database_sync_to_async(list)(
             await database_sync_to_async(
                 Message.objects.filter(id=message_id).values)())
+        if message[0]["has_media"]:
+            await database_sync_to_async(print)(
+                await database_sync_to_async(
+                    Media.objects.filter(message_id=message[0]["id"]).values)())
+            message[0]["media"] = await database_sync_to_async(list)(
+                await database_sync_to_async(
+                    Media.objects.filter(message_id=message[0]["id"]).values)())
         message[0]['timestamp'] = message[0]['timestamp'].strftime("%Y%m%d%H%M%S")
         answer = {
             'newMessage': message[0],
