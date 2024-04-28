@@ -87,6 +87,10 @@
             <input type="checkbox" id="ruleUserCanPost" name="scales" checked/>
         </div>
         <div class="set-rules-window__rule">
+            <label for="ruleUserCanRenameRoom">Can rename</label>
+            <input type="checkbox" id="ruleUserCanRenameRoom" name="scales" checked/>
+        </div>
+        <div class="set-rules-window__rule">
             <label for="ruleUserCanInvite">Can invite</label>
             <input type="checkbox" id="ruleUserCanInvite" name="scales" checked/>
         </div>
@@ -98,6 +102,10 @@
     <div class="set-rules-window__check-box" id="setRulesWindowListAdmin">
         <div style="margin-left: 10px">Admin:</div>
         <div class="set-rules-window__rule">
+            <label for="ruleAdminCanRenameRoom">Can rename</label>
+            <input type="checkbox" id="ruleAdminCanRenameRoom" name="scales" checked/>
+        </div>
+        <div class="set-rules-window__rule">
             <label for="ruleAdminCanAddAdmins">Can add new admins</label>
             <input type="checkbox" id="ruleAdminCanAddAdmins" name="scales" checked/>
         </div>
@@ -106,9 +114,9 @@
             <input type="checkbox" id="ruleAdminCanRemoveAdmins" name="scales" checked/>
         </div>
     </div>
-    <div class="set-rules-window__admins">
-        
+    <div class="set-rules-window__admins" id="setRulesWindowAdmins">
     </div>
+    <div onclick="setRulesWindow.saveRules()">Save parameters</div>
 </div>
 <div class="invite-window" id="inviteUsersToRoom">
     <div class="invite-header" id="inviteToRoomName">Test</div>

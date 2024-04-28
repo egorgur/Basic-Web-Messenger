@@ -248,10 +248,10 @@ function webSocketDataHandler(data) {
     if (data["roomRules"]) {
         DATA.currentRoom.rules = data["roomRules"]
     }
-    if (data["admins"]){
+    if (data["admins"]) {
         DATA.currentRoom.admins = data["admins"]
     }
-    if (data["ownerId"]){
+    if (data["ownerId"]) {
         DATA.currentRoom.ownerId = data["ownerId"]
     }
     if (data["users"]) {
@@ -532,28 +532,36 @@ const setRulesWindow = {
     window: document.getElementById("setRulesWindow"),
     header: document.getElementById("setRulesWindowHeader"),
     rules: {
-        userCanPost: {
+        ruleUserCanPost: {
             element: document.getElementById("ruleUserCanPost"),
             value: true,
         },
-        userCanInvite: {
-            element: document.getElementById("ruleUserCanPost"),
+        ruleUserCanRenameRoom: {
+            element: document.getElementById("ruleUserCanRenameRoom"),
             value: true,
         },
-        userCanKick: {
-            element: document.getElementById("ruleUserCanPost"),
+        ruleUserCanInvite: {
+            element: document.getElementById("ruleUserCanInvite"),
             value: true,
         },
-        ruleAdminCanAddAdmins:{
+        ruleUserCanKick: {
+            element: document.getElementById("ruleUserCanKick"),
+            value: false,
+        },
+        ruleAdminCanRenameRoom: {
+            element: document.getElementById("ruleAdminCanRenameRoom"),
+            value: true,
+        },
+        ruleAdminCanAddAdmins: {
             element: document.getElementById("ruleAdminCanAddAdmins"),
             value: true,
         },
-        ruleAdminCanRemoveAdmins:{
+        ruleAdminCanRemoveAdmins: {
             element: document.getElementById("ruleAdminCanRemoveAdmins"),
-            value: true,
+            value: false,
         },
     },
-
+    adminsListDisplay: document.getElementById("setRulesWindowAdmins"),
     rulesListDisplay: document.getElementById("setRulesWindowList"),
     openWindow() {
         this.open = true
@@ -567,14 +575,64 @@ const setRulesWindow = {
         }
     },
     showRules() {
-        if (DATA.currentRoom.rules !== "none") {
-            for (const rule in DATA.currentRoom.rules) {
-                const value = DATA.currentRoom.rules[rule]
-                console.log("rule", rule, value)
-            }
-        } else {
+        console.log(DATA.currentRoom.rules)
+        if ((DATA.currentRoom.rules !== "none") && (DATA.currentRoom.rules !== undefined)) {
 
+            this.rules.ruleUserCanPost.value = DATA.currentRoom.rules.ruleUserCanPost
+            this.rules.ruleUserCanRenameRoom.value = DATA.currentRoom.rules.ruleUserCanRenameRoom
+            this.rules.ruleUserCanInvite.value = DATA.currentRoom.rules.ruleUserCanInvite
+            this.rules.ruleUserCanKick.value = DATA.currentRoom.rules.ruleUserCanKick
+            this.rules.ruleAdminCanAddAdmins.value = DATA.currentRoom.rules.ruleAdminCanAddAdmins
+            this.rules.ruleAdminCanRemoveAdmins.value = DATA.currentRoom.rules.ruleAdminCanRemoveAdmins
+            this.rules.ruleAdminCanRenameRoom.value = DATA.currentRoom.rules.ruleAdminCanRenameRoom
+
+            this.rules.ruleUserCanPost.element.checked = this.rules.ruleUserCanPost.value
+            this.rules.ruleUserCanRenameRoom.element.checked = this.rules.ruleUserCanRenameRoom.value
+            this.rules.ruleUserCanInvite.element.checked = this.rules.ruleUserCanInvite.value
+            this.rules.ruleUserCanKick.element.checked = this.rules.ruleUserCanKick.value
+            this.rules.ruleAdminCanAddAdmins.element.checked = this.rules.ruleAdminCanAddAdmins.value
+            this.rules.ruleAdminCanRemoveAdmins.element.checked = this.rules.ruleAdminCanRemoveAdmins.value
+            this.rules.ruleAdminCanRenameRoom.element.checked = this.rules.ruleAdminCanRenameRoom.value
+
+        } else {
+            this.rules.ruleUserCanPost.element.checked = this.rules.ruleUserCanPost.value
+            this.rules.ruleUserCanRenameRoom.element.checked = this.rules.ruleUserCanRenameRoom.value
+            this.rules.ruleUserCanInvite.element.checked = this.rules.ruleUserCanInvite.value
+            this.rules.ruleUserCanKick.element.checked = this.rules.ruleUserCanKick.value
+            this.rules.ruleAdminCanAddAdmins.element.checked = this.rules.ruleAdminCanAddAdmins.value
+            this.rules.ruleAdminCanRemoveAdmins.element.checked = this.rules.ruleAdminCanRemoveAdmins.value
+            this.rules.ruleAdminCanRenameRoom.element.checked = this.rules.ruleAdminCanRenameRoom.value
         }
+        DATA.currentRoom.rules = {
+            ruleUserCanPost: this.rules.ruleUserCanPost.value,
+            ruleUserCanRenameRoom: this.rules.ruleUserCanRenameRoom.value,
+            ruleUserCanInvite: this.rules.ruleUserCanInvite.value,
+            ruleUserCanKick: this.rules.ruleUserCanKick.value,
+            ruleAdminCanAddAdmins: this.rules.ruleAdminCanAddAdmins.value,
+            ruleAdminCanRemoveAdmins: this.rules.ruleAdminCanRemoveAdmins.value,
+            ruleAdminCanRenameRoom: this.rules.ruleAdminCanRenameRoom.value
+        }
+    },
+    showAdmins(){},
+    saveRules() {
+        this.rules.ruleUserCanPost.value = this.rules.ruleUserCanPost.element.checked
+        this.rules.ruleUserCanRenameRoom.value = this.rules.ruleUserCanRenameRoom.element.checked
+        this.rules.ruleUserCanInvite.value = this.rules.ruleUserCanInvite.element.checked
+        this.rules.ruleUserCanKick.value = this.rules.ruleUserCanKick.element.checked
+        this.rules.ruleAdminCanAddAdmins.value = this.rules.ruleAdminCanAddAdmins.element.checked
+        this.rules.ruleAdminCanRemoveAdmins.value = this.rules.ruleAdminCanRemoveAdmins.element.checked
+        this.rules.ruleAdminCanRenameRoom.value = this.rules.ruleAdminCanRenameRoom.element.checked
+
+        DATA.currentRoom.rules = {
+            ruleUserCanPost: this.rules.ruleUserCanPost.value,
+            ruleUserCanRenameRoom: this.rules.ruleUserCanRenameRoom.value,
+            ruleUserCanInvite: this.rules.ruleUserCanInvite.value,
+            ruleUserCanKick: this.rules.ruleUserCanKick.value,
+            ruleAdminCanAddAdmins: this.rules.ruleAdminCanAddAdmins.value,
+            ruleAdminCanRemoveAdmins: this.rules.ruleAdminCanRemoveAdmins.value,
+            ruleAdminCanRenameRoom: this.rules.ruleAdminCanRenameRoom.value,
+        }
+        console.log(DATA.currentRoom.rules)
     },
     closeWindow() {
         this.window.classList.remove("active")
