@@ -95,15 +95,15 @@ class Consumer(AsyncConsumer):
                     room_messages[i]['timestamp'] = room_messages[i]['timestamp'].strftime("%Y%m%d%H%M%S")
                 room = await database_sync_to_async(Room.objects.get)(id=received["room_id"])
                 room_owner_id = room_administration.owner
-
-                users_data = await database_sync_to_async(list)(room.users.all().values('id', 'username'))
+                room_admins = await database_sync_to_async(list)(room_administration.admins.all().values('id', 'username'))
+                room_users = await database_sync_to_async(list)(room.users.all().values('id', 'username'))
                 room_rules = room.rules
                 room_data = {
                     "roomRules": room_rules,
-                    'messages': room_messages,
-                    'users': users_data,
-                    "ownerId": None,
-                    "admins": [],
+                    "messages": room_messages,
+                    "users": room_users,
+                    "ownerId": room_owner_id,
+                    "admins": room_admins,
                 }
                 print('answered: send all room messages')
                 json_data = json.dumps(room_data)

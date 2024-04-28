@@ -236,7 +236,7 @@ function reload(type) {
 
 function webSocketDataHandler(data) {
     console.log('from-server:', data)
-    if (data['rooms']) {
+    if (data["rooms"]) {
         DATA.rooms = data['rooms']
         if (!(DATA.rooms.find((room) => room.id === DATA.currentRoom.id))) {
             DATA.clearCurrentRoomData()
@@ -245,7 +245,7 @@ function webSocketDataHandler(data) {
         showRooms()
         showRoomName()
     }
-    if (data['roomRules']) {
+    if (data["roomRules"]) {
         DATA.currentRoom.rules = data["roomRules"]
     }
     if (data["admins"]){
@@ -254,7 +254,7 @@ function webSocketDataHandler(data) {
     if (data["ownerId"]){
         DATA.currentRoom.ownerId = data["ownerId"]
     }
-    if (data['users']) {
+    if (data["users"]) {
         DATA.currentRoom.users = data['users']
         if (inviteUsersWindow.open) {
             inviteUsersWindow.showUsersToInvite()
@@ -263,11 +263,11 @@ function webSocketDataHandler(data) {
             kickUserWindow.showUsersToKick()
         }
     }
-    if (data['messages']) {
+    if (data["messages"]) {
         DATA.currentRoom.messages = data['messages']
         showMessages()
     }
-    if (data['user']) {
+    if (data["user"]) {
         DATA.userData = data['user']
     }
     if (data["yourMessage"]) {
@@ -280,16 +280,16 @@ function webSocketDataHandler(data) {
             INPUT.clearFileInput(DATA.currentRoom.id)
         }
     }
-    if (data['newMessage']) {
+    if (data["newMessage"]) {
         if (data["newMessage"]["room_id_id"] === DATA.currentRoom.id) {
             DATA.currentRoom.messages.push(data['newMessage'])
             showMessages()
         }
     }
-    if (data['allUsers']) {
+    if (data["allUsers"]) {
         DATA.allUsers = data['allUsers']
     }
-    if (data['reload']) {
+    if (data["reload"]) {
         reload(data['reload'])
     }
 }
