@@ -139,6 +139,37 @@ class Consumer(AsyncConsumer):
                     self.active_websockets, group_answer
                 )
             case "rename_room":
+                room_administration = await database_sync_to_async(
+                    RoomAdmin.objects.get)(room_id=received["room_id"])
+                room = await database_sync_to_async(Room.objects.get)(pk=received["room_id"])
+                if self.user.id != room_administration.owner:
+                    if not await database_sync_to_async(
+                            room_administration.admins.filter(id=self.user.id).exists)():
+                        if room.rules != "none":
+                            if not json.loads(room.rules)["ruleUserCanRenameRoom"]:
+                                answer = {
+                                    "error": True,
+                                    "data": "users cannot rename this room",
+                                }
+                                await self.send({
+                                    "type": "websocket.send",
+                                    "text": json.dumps(answer)
+                                })
+                                print("user cannot rename room because of the rules")
+                                return 0
+                    else:
+                        if room.rules != "none":
+                            if not json.loads(room.rules)["ruleAdminCanRenameRoom"]:
+                                answer = {
+                                    "error": True,
+                                    "data": "admin cannot rename this room",
+                                }
+                                await self.send({
+                                    "type": "websocket.send",
+                                    "text": json.dumps(answer)
+                                })
+                                print("admin cannot rename room because of the rules")
+                                return 0
                 if len(received['name']) > 0:
                     await self.rename_room(received['room_id'], received['name'])
                     answer = {
@@ -174,7 +205,7 @@ class Consumer(AsyncConsumer):
                         room_rules["ruleAdminCanAddAdmins"] = rules["ruleAdminCanAddAdmins"]
                         room_rules["ruleAdminCanRemoveAdmins"] = rules["ruleAdminCanRemoveAdmins"]
                     room.rules = json.dumps(room_rules)
-                    await database_sync_to_async (room.save)()
+                    await database_sync_to_async(room.save)()
                     print(room.rules)
                     answer = {
                         "success": True,
@@ -205,12 +236,28 @@ class Consumer(AsyncConsumer):
                 room = await database_sync_to_async(Room.objects.get)(pk=room_id)
                 if await database_sync_to_async(room.users.filter(id=received['user_id']).exists)():
                     room_administration = await database_sync_to_async(RoomAdmin.objects.get)(room_id=room_id)
+                    if self.user.id != room_administration.owner:
+                        if await database_sync_to_async(
+                                room_administration.admins.filter(id=self.user.id).exists)():
+                            if room.rules != "none":
+                                if not json.loads(room.rules)["ruleAdminCanRemoveAdmins"]:
+                                    answer = {
+                                        "error": True,
+                                        "data": "admin cannot remove admins",
+                                    }
+                                    await self.send({
+                                        "type": "websocket.send",
+                                        "text": json.dumps(answer)
+                                    })
+                                    print("admin cannot remove admins")
+                                    return 0
                     if user_id == room_administration.owner:
                         answer = {
                             "error": True,
                             "data": "user is an owner",
                         }
-                    elif await database_sync_to_async(room_administration.admins.filter(id=received['user_id']).exists)():
+                    elif await database_sync_to_async(
+                            room_administration.admins.filter(id=received['user_id']).exists)():
                         user = await database_sync_to_async(User.objects.get)(pk=user_id)
                         await database_sync_to_async(room_administration.admins.remove)(user)
                         await (database_sync_to_async(print)
@@ -219,6 +266,22 @@ class Consumer(AsyncConsumer):
                             "success": True,
                             "reload": "room",
                         }
+                        try:
+                            room_name = "Room_group_" + str(room_id)
+                            channel_name = user_channels[received["user_id"]]
+                            await self.channel_layer.group_discard(
+                                room_name, channel_name
+                            )
+                            channel_message = {
+                                "type": 'websocket.receive',
+                                "text": json.dumps({
+                                    "request": "group_data",
+                                    "room_id": room_id
+                                })
+                            }
+                            await self.channel_layer.send(channel=channel_name, message=channel_message)
+                        except:
+                            ...
                     else:
                         answer = {
                             "error": True,
@@ -239,7 +302,23 @@ class Consumer(AsyncConsumer):
                 room = await database_sync_to_async(Room.objects.get)(pk=room_id)
                 if await database_sync_to_async(room.users.filter(id=received['user_id']).exists)():
                     room_administration = await database_sync_to_async(RoomAdmin.objects.get)(room_id=room_id)
-                    if not await database_sync_to_async(room_administration.admins.filter(id=received['user_id']).exists)():
+                    if self.user.id != room_administration.owner:
+                        if await database_sync_to_async(
+                                room_administration.admins.filter(id=self.user.id).exists)():
+                            if room.rules != "none":
+                                if not json.loads(room.rules)["ruleAdminCanAddAdmins"]:
+                                    answer = {
+                                        "error": True,
+                                        "data": "admin cannot add new admins",
+                                    }
+                                    await self.send({
+                                        "type": "websocket.send",
+                                        "text": json.dumps(answer)
+                                    })
+                                    print("admin cannot add mew admins")
+                                    return 0
+                    if not await database_sync_to_async(
+                            room_administration.admins.filter(id=received['user_id']).exists)():
                         user = await database_sync_to_async(User.objects.get)(pk=user_id)
                         await database_sync_to_async(room_administration.admins.add)(user)
                         await (database_sync_to_async(print)
@@ -248,6 +327,22 @@ class Consumer(AsyncConsumer):
                             "success": True,
                             "reload": "room",
                         }
+                        try:
+                            room_name = "Room_group_" + str(room_id)
+                            channel_name = user_channels[received["user_id"]]
+                            await self.channel_layer.group_discard(
+                                room_name, channel_name
+                            )
+                            channel_message = {
+                                "type": 'websocket.receive',
+                                "text": json.dumps({
+                                    "request": "group_data",
+                                    "room_id": room_id
+                                })
+                            }
+                            await self.channel_layer.send(channel=channel_name, message=channel_message)
+                        except:
+                            ...
                     else:
                         answer = {
                             "error": True,
@@ -282,6 +377,23 @@ class Consumer(AsyncConsumer):
                                 "data": "user is in the room already",
                             }
                         else:
+                            room_administration = await database_sync_to_async(
+                                RoomAdmin.objects.get)(room_id=received["room_id"])
+                            if self.user.id != room_administration.owner:
+                                if not await database_sync_to_async(
+                                        room_administration.admins.filter(id=self.user.id).exists)():
+                                    if room.rules != "none":
+                                        if not json.loads(room.rules)["ruleUserCanInvite"]:
+                                            answer = {
+                                                "error": True,
+                                                "data": "users cannot invite in this room",
+                                            }
+                                            await self.send({
+                                                "type": "websocket.send",
+                                                "text": json.dumps(answer)
+                                            })
+                                            print("user cannot invite because of the rules")
+                                            return 0
                             user = await database_sync_to_async(User.objects.get)(pk=received['user_id'])
                             await database_sync_to_async(room.users.add)(user)
                             room_name = "Room_group_" + str(received["room_id"])
@@ -322,6 +434,25 @@ class Consumer(AsyncConsumer):
                             "data": "cannot kick yourself",
                         }
                     elif await database_sync_to_async(room.users.filter(id=received['user_id']).exists)():
+
+                        room_administration = await database_sync_to_async(
+                            RoomAdmin.objects.get)(room_id=received["room_id"])
+                        if self.user.id != room_administration.owner:
+                            if not await database_sync_to_async(
+                                    room_administration.admins.filter(id=self.user.id).exists)():
+                                if room.rules != "none":
+                                    if not json.loads(room.rules)["ruleUserCanKick"]:
+                                        answer = {
+                                            "error": True,
+                                            "data": "users cannot kick in this room",
+                                        }
+                                        await self.send({
+                                            "type": "websocket.send",
+                                            "text": json.dumps(answer)
+                                        })
+                                        print("user cannot kick because of the rules")
+                                        return 0
+
                         user = await database_sync_to_async(User.objects.get)(pk=received['user_id'])
                         await database_sync_to_async(room.users.remove)(user)
                         room_name = "Room_group_" + str(received["room_id"])
@@ -473,8 +604,25 @@ class Consumer(AsyncConsumer):
 
     async def message_handler(self, message_data):
         print("Message Data", message_data)
+        room = (await database_sync_to_async(Room.objects.get)(id=message_data['room_id']))
+        room_administration = await database_sync_to_async(RoomAdmin.objects.get)(room_id=message_data["room_id"])
+        # the check if user can post messages by rules
+        if self.user.id != room_administration.owner:
+            if not await database_sync_to_async(room_administration.admins.filter(id=self.user.id).exists)():
+                if room.rules != "none":
+                    if not json.loads(room.rules)["ruleUserCanPost"]:
+                        answer = {
+                            "error": True,
+                            "data": "users cannot post in this room",
+                        }
+                        await self.send({
+                            "type": "websocket.send",
+                            "text": json.dumps(answer)
+                        })
+                        print("user cannot post because of the rules")
+                        return 0
+
         if len(message_data['message']) > 0:
-            room = (await database_sync_to_async(Room.objects.get)(id=message_data['room_id']))
             message = await database_sync_to_async(Message.objects.create)(
                 message=message_data['message'][0:200],
                 room_id=room,

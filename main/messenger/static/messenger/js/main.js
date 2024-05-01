@@ -44,9 +44,8 @@ const DATA = {
             text: {},
             files: [],
         }
-    }
+    },
 }
-
 const INPUT = {
     textInputElement: document.getElementById('input'),
     /**
@@ -303,20 +302,8 @@ function webSocketDataHandler(data) {
         showRooms()
         showRoomName()
     }
-    if (data["roomRules"]) {
-        if (data["roomRules"] !== "none") {
-            DATA.currentRoom.rules = JSON.parse(data["roomRules"])
-        } else {
-            DATA.currentRoom.rules = data["roomRules"]
-        }
-        if ((!DATA.currentRoom.rules.ruleUserCanPost) && (!DATA.userIsAdmin(DATA.userData.id))) {
-            console.log("input disabled")
-            INPUT.textInputElement.setAttribute("disabled", "true")
-        } else {
-            console.log("input activated")
-            INPUT.textInputElement.removeAttribute("disabled")
-        }
-
+    if (data["ownerId"]) {
+        DATA.currentRoom["ownerId"] = data["ownerId"]
     }
     if (data["admins"]) {
         DATA.currentRoom["admins"] = data["admins"]
@@ -324,8 +311,63 @@ function webSocketDataHandler(data) {
             setRulesWindow.showUsers()
         }
     }
-    if (data["ownerId"]) {
-        DATA.currentRoom["ownerId"] = data["ownerId"]
+    if (data["roomRules"]) {
+        if (data["roomRules"] !== "none") {
+            DATA.currentRoom.rules = JSON.parse(data["roomRules"])
+        } else {
+            DATA.currentRoom.rules.ruleUserCanPost = true
+            DATA.currentRoom.rules.ruleUserCanRenameRoom = true
+            DATA.currentRoom.rules.ruleUserCanInvite = true
+            DATA.currentRoom.rules.ruleUserCanKick = false
+            DATA.currentRoom.rules.ruleAdminCanAddAdmins = true
+            DATA.currentRoom.rules.ruleAdminCanRemoveAdmins = false
+            DATA.currentRoom.rules.ruleAdminCanRenameRoom = true
+        }
+        if (!DATA.userIsOwner(DATA.userData.id)) {
+            if ((!DATA.currentRoom.rules.ruleUserCanPost) && (DATA.currentRoom.rules !== "none") && (!DATA.userIsAdmin(DATA.userData.id))) {
+                console.log("input disabled")
+                INPUT.textInputElement.setAttribute("disabled", "true")
+                INPUT.textInputElement.setAttribute("placeholder", "you cannot send messages")
+            } else {
+                console.log("input activated")
+                INPUT.textInputElement.removeAttribute("disabled")
+                INPUT.textInputElement.setAttribute("placeholder", "")
+            }
+            if ((!DATA.currentRoom.rules.ruleUserCanRenameRoom) && (DATA.currentRoom.rules !== "none") && (!DATA.userIsAdmin(DATA.userData.id))) {
+                console.log("rename disabled")
+                RoomRenameWindow.groupWindowButton.style.display = "none"
+            } else if ((DATA.userIsAdmin(DATA.userData.id)) && (!DATA.currentRoom.rules.ruleAdminCanRenameRoom)) {
+                console.log("rename disabled")
+                RoomRenameWindow.groupWindowButton.style.display = "none"
+            } else {
+                RoomRenameWindow.groupWindowButton.style.display = "inherit"
+            }
+            if ((!DATA.currentRoom.rules.ruleUserCanInvite) && (DATA.currentRoom.rules !== "none") && (!DATA.userIsAdmin(DATA.userData.id))) {
+                console.log("invite disabled")
+                inviteUsersWindow.groupWindowButton.style.display = "none"
+            } else {
+                inviteUsersWindow.groupWindowButton.style.display = "inherit"
+            }
+            if ((!DATA.currentRoom.rules.ruleUserCanKick) && (DATA.currentRoom.rules !== "none") && (!DATA.userIsAdmin(DATA.userData.id))) {
+                console.log("kick disabled")
+                kickUserWindow.groupWindowButton.style.display = "none"
+            } else {
+                kickUserWindow.groupWindowButton.style.display = "inherit"
+            }
+            if (!DATA.userIsAdmin(DATA.userData.id)) {
+                setRulesWindow.groupWindowButton.style.display = "none"
+            } else {
+                setRulesWindow.groupWindowButton.style.display = "inherit"
+            }
+        } else {
+            console.log("input activated")
+            INPUT.textInputElement.removeAttribute("disabled")
+            INPUT.textInputElement.setAttribute("placeholder", "")
+            RoomRenameWindow.groupWindowButton.style.display = "inherit"
+            inviteUsersWindow.groupWindowButton.style.display = "inherit"
+            kickUserWindow.groupWindowButton.style.display = "inherit"
+            setRulesWindow.groupWindowButton.style.display = "inherit"
+        }
     }
     if (data["users"]) {
         DATA.currentRoom["users"] = data['users']
@@ -573,6 +615,7 @@ const deleteConfirmWindow = {
 const RoomRenameWindow = {
     open: false,
     roomMenuWindow: document.getElementById('renameRoomWindow'),
+    groupWindowButton: document.getElementById("groupRename"),
     renameWindowOldName: document.getElementById('renameWindowOldName'),
     renameRoomInput: document.getElementById('renameRoomInput'),
     saveButton: document.getElementById('renameRoomInput'),
@@ -606,6 +649,7 @@ const RoomRenameWindow = {
 const setRulesWindow = {
     open: false,
     window: document.getElementById("setRulesWindow"),
+    groupWindowButton: document.getElementById("groupRules"),
     header: document.getElementById("setRulesWindowHeader"),
     rules: {
         ruleUserCanPost: {
@@ -804,6 +848,7 @@ const setRulesWindow = {
 const inviteUsersWindow = {
     open: false,
     window: document.getElementById("inviteUsersToRoom"),
+    groupWindowButton: document.getElementById("groupInvite"),
     inviteToRoomName: document.getElementById("inviteToRoomName"),
     inviteUsersDiv: document.getElementById("inviteUsersDiv"),
     openWindow() {
@@ -848,7 +893,8 @@ const inviteUsersWindow = {
 
 const kickUserWindow = {
     open: false,
-    kickWindow: document.getElementById("kickWindow"),
+    window: document.getElementById("kickWindow"),
+    groupWindowButton: document.getElementById("groupKick"),
     kickWindowHeader: document.getElementById("kickWindowHeader"),
     kickWindowUsers: document.getElementById("kickWindowUsers"),
     openWindow() {
@@ -859,13 +905,13 @@ const kickUserWindow = {
             kickUserWindow.closeWindow()
             GroupMenuWindow.openWindow()
         }
-        this.kickWindow.classList.add("active")
+        this.window.classList.add("active")
         this.showUsersToKick()
         overlay.classList.add("active")
         this.open = true
     },
     closeWindow() {
-        this.kickWindow.classList.remove('active')
+        this.window.classList.remove('active')
         this.open = false
     },
     showUsersToKick() {
