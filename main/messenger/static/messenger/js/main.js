@@ -9,7 +9,10 @@ const groupDataDisplay = document.getElementById('groupDataDisplay')
 const overlay = document.getElementById('overlay')
 
 const DATA = {
-    userData: {},
+    userData: {
+        id: null,
+        username: "",
+    },
     currentRoom: {
         id: null,
         name: '',
@@ -18,18 +21,27 @@ const DATA = {
         rules: {},
         users: [],
         messages: [],
-        text: '',
+        text: {},
         files: [],
     },
     rooms: [],
     allUsers: [],
+    userIsAdmin(userId) {
+        return (DATA.currentRoom.admins.find((user) => user.id === userId) !== undefined)
+    },
+    userIsOwner(userId) {
+        return (DATA.currentRoom.ownerId === userId)
+    },
     clearCurrentRoomData() {
         this.currentRoom = {
             id: null,
             name: '',
+            ownerId: null,
+            admins: [],
+            rules: {},
             users: [],
             messages: [],
-            text: '',
+            text: {},
             files: [],
         }
     }
@@ -114,14 +126,32 @@ const REQUESTS = {
             request: 'group_data',
             room_id: DATA.currentRoom.id
         })
-        websocket.send(JSON.stringify(
-            {
-                request: 'group_data',
-                room_id: DATA.currentRoom.id
-            }
-        ))
+        websocket.send(JSON.stringify({
+            request: 'group_data',
+            room_id: DATA.currentRoom.id
+        }))
     },
-    requestMessage(messageId) {
+    requestRoomMessages() {
+        console.log('from-user', {
+            request: 'room_messages',
+            room_id: DATA.currentRoom.id
+        })
+        websocket.send(JSON.stringify({
+            request: 'room_messages',
+            room_id: DATA.currentRoom.id
+        }))
+    },
+    requestSaveRoomRules() {
+        console.log("from-user", {
+            request: "save_rules",
+            room_id: DATA.currentRoom.id,
+            rules: DATA.currentRoom.rules,
+        })
+        websocket.send(JSON.stringify({
+            request: "save_rules",
+            room_id: DATA.currentRoom.id,
+            rules: DATA.currentRoom.rules,
+        }))
     },
     requestMyUser() {
         console.log('from-user', {request: 'user'})
@@ -158,6 +188,34 @@ const REQUESTS = {
         websocket.send(JSON.stringify(
             {
                 request: "invite",
+                user_id: userId,
+                room_id: roomId,
+            }
+        ))
+    },
+    requestRemoveAdmin(userId, roomId) {
+        console.log("from-user", {
+            request: "remove_admin",
+            user_id: userId,
+            room_id: roomId,
+        })
+        websocket.send(JSON.stringify(
+            {
+                request: "remove_admin",
+                user_id: userId,
+                room_id: roomId,
+            }
+        ))
+    },
+    requestMakeAdmin(userId, roomId) {
+        console.log("from-user", {
+            request: "make_admin",
+            user_id: userId,
+            room_id: roomId,
+        })
+        websocket.send(JSON.stringify(
+            {
+                request: "make_admin",
                 user_id: userId,
                 room_id: roomId,
             }
@@ -246,16 +304,31 @@ function webSocketDataHandler(data) {
         showRoomName()
     }
     if (data["roomRules"]) {
-        DATA.currentRoom.rules = data["roomRules"]
+        if (data["roomRules"] !== "none") {
+            DATA.currentRoom.rules = JSON.parse(data["roomRules"])
+        } else {
+            DATA.currentRoom.rules = data["roomRules"]
+        }
+        if ((!DATA.currentRoom.rules.ruleUserCanPost) && (!DATA.userIsAdmin(DATA.userData.id))) {
+            console.log("input disabled")
+            INPUT.textInputElement.setAttribute("disabled", "true")
+        } else {
+            console.log("input activated")
+            INPUT.textInputElement.removeAttribute("disabled")
+        }
+
     }
     if (data["admins"]) {
-        DATA.currentRoom.admins = data["admins"]
+        DATA.currentRoom["admins"] = data["admins"]
+        if (setRulesWindow.open) {
+            setRulesWindow.showUsers()
+        }
     }
     if (data["ownerId"]) {
-        DATA.currentRoom.ownerId = data["ownerId"]
+        DATA.currentRoom["ownerId"] = data["ownerId"]
     }
     if (data["users"]) {
-        DATA.currentRoom.users = data['users']
+        DATA.currentRoom["users"] = data['users']
         if (inviteUsersWindow.open) {
             inviteUsersWindow.showUsersToInvite()
         }
@@ -264,7 +337,7 @@ function webSocketDataHandler(data) {
         }
     }
     if (data["messages"]) {
-        DATA.currentRoom.messages = data['messages']
+        DATA.currentRoom["messages"] = data['messages']
         showMessages()
     }
     if (data["user"]) {
@@ -290,8 +363,9 @@ function webSocketDataHandler(data) {
         DATA.allUsers = data['allUsers']
     }
     if (data["reload"]) {
-        reload(data['reload'])
+        reload(data["reload"])
     }
+    // console.log("current room ", DATA.currentRoom)
 }
 
 function showRooms() {
@@ -352,6 +426,7 @@ function chooseRoom(id) {
             INPUT.textInputElement.value = ""
         }
         REQUESTS.requestRoomData()
+        REQUESTS.requestRoomMessages()
         showRoomName()
         fileInputWindow.openWindow()
     }
@@ -409,6 +484,7 @@ const GroupMenuWindow = {
         RoomRenameWindow.openWindow()
     },
     setRules() {
+        REQUESTS.requestRoomData()
         this.closeWindow()
         setRulesWindow.openWindow()
     },
@@ -561,11 +637,17 @@ const setRulesWindow = {
             value: false,
         },
     },
-    adminsListDisplay: document.getElementById("setRulesWindowAdmins"),
-    rulesListDisplay: document.getElementById("setRulesWindowList"),
+    usersListDisplay: document.getElementById("setRulesWindowAdmins"),
+    setRulesWindowListAdmin: document.getElementById("setRulesWindowListAdmin"),
+
     openWindow() {
         this.open = true
         this.showRules()
+        if (!DATA.userIsOwner(DATA.userData.id)) {
+            this.setRulesWindowListAdmin.style.display = "none"
+        } else {
+            this.setRulesWindowListAdmin.style.display = "inherit"
+        }
         this.window.classList.add("active")
         this.header.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + 'Rules ' + DATA.currentRoom.name + "</span>"
         const button = this.header.getElementsByTagName('button')
@@ -575,7 +657,7 @@ const setRulesWindow = {
         }
     },
     showRules() {
-        console.log(DATA.currentRoom.rules)
+        console.log("Rules", DATA.currentRoom.rules)
         if ((DATA.currentRoom.rules !== "none") && (DATA.currentRoom.rules !== undefined)) {
 
             this.rules.ruleUserCanPost.value = DATA.currentRoom.rules.ruleUserCanPost
@@ -595,6 +677,15 @@ const setRulesWindow = {
             this.rules.ruleAdminCanRenameRoom.element.checked = this.rules.ruleAdminCanRenameRoom.value
 
         } else {
+            this.rules.ruleUserCanPost.value = true
+            this.rules.ruleUserCanRenameRoom.value = true
+            this.rules.ruleUserCanInvite.value = true
+            this.rules.ruleUserCanKick.value = false
+            this.rules.ruleAdminCanAddAdmins.value = true
+            this.rules.ruleAdminCanRemoveAdmins.value = false
+            this.rules.ruleAdminCanRenameRoom.value = true
+
+
             this.rules.ruleUserCanPost.element.checked = this.rules.ruleUserCanPost.value
             this.rules.ruleUserCanRenameRoom.element.checked = this.rules.ruleUserCanRenameRoom.value
             this.rules.ruleUserCanInvite.element.checked = this.rules.ruleUserCanInvite.value
@@ -612,8 +703,77 @@ const setRulesWindow = {
             ruleAdminCanRemoveAdmins: this.rules.ruleAdminCanRemoveAdmins.value,
             ruleAdminCanRenameRoom: this.rules.ruleAdminCanRenameRoom.value
         }
+        this.showUsers()
     },
-    showAdmins(){},
+    showUsers() {
+        this.usersListDisplay.replaceChildren()
+        for (const user in DATA.currentRoom.users) {
+            const userData = DATA.currentRoom.users[user]
+
+            console.log(userData)
+            this.createUserDiv(userData)
+
+        }
+    },
+    createUserDiv(userData) {
+        let div = document.createElement("div");
+        div.className = "user"
+        div.id = "user_" + userData.id
+        const Name = userData.username
+        if (DATA.userIsOwner(DATA.userData.id)) {
+            console.log("You are an owner")
+            if (DATA.userIsOwner(userData.id)) {
+                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Owner" + "</div>"
+            } else if (DATA.userIsAdmin(userData.id)) {
+                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>remove admin</button>" + "</div>"
+                const button = div.getElementsByTagName("button")
+                button.item(0).onclick = function () {
+                    REQUESTS.requestRemoveAdmin(userData.id, DATA.currentRoom.id)
+                }
+            } else {
+                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>make admin</button>" + "</div>"
+                const button = div.getElementsByTagName("button")
+                button.item(0).onclick = function () {
+                    REQUESTS.requestMakeAdmin(userData.id, DATA.currentRoom.id)
+                }
+            }
+        } else if (DATA.userIsAdmin(DATA.userData.id)) {
+            console.log("You are an admin")
+            if (DATA.userIsOwner(userData.id)) {
+                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Owner" + "</div>"
+            } else if (DATA.userIsAdmin(userData.id)) {
+                if (DATA.currentRoom.rules.ruleAdminCanRemoveAdmins) {
+                    div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>remove admin</button>" + "</div>"
+                    const button = div.getElementsByTagName("button")
+                    button.item(0).onclick = function () {
+                        REQUESTS.requestRemoveAdmin(userData.id, DATA.currentRoom.id)
+                    }
+                } else {
+                    div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Admin" + "</div>"
+                }
+            } else {
+                if (DATA.currentRoom.rules.ruleAdminCanAddAdmins) {
+                    div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>make admin</button>" + "</div>"
+                    const button = div.getElementsByTagName("button")
+                    button.item(0).onclick = function () {
+                        REQUESTS.requestMakeAdmin(userData.id, DATA.currentRoom.id)
+                    }
+                } else {
+                    div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "User" + "</div>"
+                }
+            }
+        } else {
+            console.log("You are a user")
+            if (DATA.userIsOwner(userData.id)) {
+                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Owner" + "</div>"
+            } else if (DATA.userIsAdmin(userData.id)) {
+                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Admin" + "</div>"
+            } else {
+                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "User" + "</div>"
+            }
+        }
+        this.usersListDisplay.appendChild(div);
+    },
     saveRules() {
         this.rules.ruleUserCanPost.value = this.rules.ruleUserCanPost.element.checked
         this.rules.ruleUserCanRenameRoom.value = this.rules.ruleUserCanRenameRoom.element.checked
@@ -633,6 +793,7 @@ const setRulesWindow = {
             ruleAdminCanRenameRoom: this.rules.ruleAdminCanRenameRoom.value,
         }
         console.log(DATA.currentRoom.rules)
+        REQUESTS.requestSaveRoomRules()
     },
     closeWindow() {
         this.window.classList.remove("active")

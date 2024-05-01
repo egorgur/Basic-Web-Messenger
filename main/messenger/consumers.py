@@ -45,18 +45,14 @@ class Consumer(AsyncConsumer):
         match request:
             case "connect":
                 answer = {"connect": "success"}
-                print('answered: ', json.dumps(answer))
+                print("answered: ", json.dumps(answer))
                 await self.send({
                     "type": "websocket.send",
                     "text": json.dumps(answer)
                 })
             case "none":
-                received['status'] = 'no request'
+                received["status"] = "no request"
                 print('answered: ', json.dumps(received))
-                update_request = {
-                    "text": json.dumps({"connect": "true"})
-                }
-                await self.group_receive(update_request)
                 await self.send({
                     "type": "websocket.send",
                     "text": json.dumps(received)
@@ -79,11 +75,11 @@ class Consumer(AsyncConsumer):
                     "type": "websocket.send",
                     "text": json_rooms
                 })
-            case "group_data":
+            case "room_messages":
                 room_messages = await database_sync_to_async(list)(
                     await database_sync_to_async(
                         Message.objects.filter(room_id=received["room_id"]).values)())
-                room_administration = await database_sync_to_async(RoomAdmin.objects.get)(room_id=received["room_id"])
+
                 for i in range(len(room_messages)):
                     if room_messages[i]["has_media"]:
                         await database_sync_to_async(print)(
@@ -93,23 +89,34 @@ class Consumer(AsyncConsumer):
                             await database_sync_to_async(
                                 Media.objects.filter(message_id=room_messages[i]["id"]).values)())
                     room_messages[i]['timestamp'] = room_messages[i]['timestamp'].strftime("%Y%m%d%H%M%S")
+
+                room_data_messages = {
+                    "messages": room_messages
+                }
+                print('answered:', "Send all messages")
+                await self.send({
+                    "type": "websocket.send",
+                    "text": json.dumps(room_data_messages)
+                })
+            case "group_data":
                 room = await database_sync_to_async(Room.objects.get)(id=received["room_id"])
+                room_administration = await database_sync_to_async(RoomAdmin.objects.get)(room_id=received["room_id"])
+
                 room_owner_id = room_administration.owner
-                room_admins = await database_sync_to_async(list)(room_administration.admins.all().values('id', 'username'))
+                room_admins = await database_sync_to_async(list)(
+                    room_administration.admins.all().values('id', 'username'))
                 room_users = await database_sync_to_async(list)(room.users.all().values('id', 'username'))
                 room_rules = room.rules
                 room_data = {
                     "roomRules": room_rules,
-                    "messages": room_messages,
                     "users": room_users,
                     "ownerId": room_owner_id,
                     "admins": room_admins,
                 }
-                print('answered: send all room messages')
-                json_data = json.dumps(room_data)
+                print('answered:', room_data)
                 await self.send({
                     "type": "websocket.send",
-                    "text": json_data
+                    "text": json.dumps(room_data)
                 })
             case "send_message":
                 print('answered: save_message')
@@ -118,14 +125,11 @@ class Consumer(AsyncConsumer):
                 #     "type": "websocket.send",
                 #     "text": json.dumps(received)
                 # })
-            case "update_message":
-                message_id = received["message_id"]
-                room_id = received["room_id"]
-                await self.group_send(received)
-                ...
-            case "group_receive":
-                print("group_receive")
-                ...
+            # case "update_message":
+            #     message_id = received["message_id"]
+            #     room_id = received["room_id"]
+            #     await self.group_send(received)
+            #     ...
             case "group_send":
                 group_answer = {
                     "type": "group_send",
@@ -145,6 +149,119 @@ class Consumer(AsyncConsumer):
                         "type": "websocket.send",
                         "text": json.dumps(answer)
                     })
+            case "save_rules":
+                room_id = received["room_id"]
+                rules = received["rules"]
+                room = await database_sync_to_async(Room.objects.get)(pk=room_id)
+                room_rules = room.rules
+                room_administration = await database_sync_to_async(RoomAdmin.objects.get)(room_id=room_id)
+                if database_sync_to_async(room_administration.admins.filter(id=self.user.id).exists)():
+                    if room_rules == "none":
+                        room_rules = {
+                            "ruleUserCanPost": rules["ruleUserCanPost"],
+                            "ruleUserCanRenameRoom": rules["ruleUserCanRenameRoom"],
+                            "ruleUserCanInvite": rules["ruleUserCanInvite"],
+                            "ruleUserCanKick": rules["ruleUserCanKick"],
+                        }
+                    else:
+                        room_rules = json.loads(room_rules)
+                        room_rules["ruleUserCanPost"] = rules["ruleUserCanPost"]
+                        room_rules["ruleUserCanRenameRoom"] = rules["ruleUserCanRenameRoom"]
+                        room_rules["ruleUserCanInvite"] = rules["ruleUserCanInvite"]
+                        room_rules["ruleUserCanKick"] = rules["ruleUserCanKick"]
+                    if self.user.id == room_administration.owner:
+                        room_rules["ruleAdminCanRenameRoom"] = rules["ruleAdminCanRenameRoom"]
+                        room_rules["ruleAdminCanAddAdmins"] = rules["ruleAdminCanAddAdmins"]
+                        room_rules["ruleAdminCanRemoveAdmins"] = rules["ruleAdminCanRemoveAdmins"]
+                    room.rules = json.dumps(room_rules)
+                    await database_sync_to_async (room.save)()
+                    print(room.rules)
+                    answer = {
+                        "success": True,
+                        "reload": "room",
+                    }
+                    room_name = "Room_group_" + str(room_id)
+                    group_request = {
+                        "type": "group_send",
+                        "text": json.dumps(answer),
+                    }
+                    await self.channel_layer.group_send(
+                        room_name, group_request
+                    )
+                else:
+                    answer = {
+                        "error": True,
+                        "data": "you are not an admin",
+                    }
+
+                await self.send({
+                    "type": "websocket.send",
+                    "text": json.dumps(answer)
+                })
+
+            case "remove_admin":
+                room_id = received["room_id"]
+                user_id = received["user_id"]
+                room = await database_sync_to_async(Room.objects.get)(pk=room_id)
+                if await database_sync_to_async(room.users.filter(id=received['user_id']).exists)():
+                    room_administration = await database_sync_to_async(RoomAdmin.objects.get)(room_id=room_id)
+                    if user_id == room_administration.owner:
+                        answer = {
+                            "error": True,
+                            "data": "user is an owner",
+                        }
+                    elif await database_sync_to_async(room_administration.admins.filter(id=received['user_id']).exists)():
+                        user = await database_sync_to_async(User.objects.get)(pk=user_id)
+                        await database_sync_to_async(room_administration.admins.remove)(user)
+                        await (database_sync_to_async(print)
+                               (await database_sync_to_async(room_administration.admins.all)()))
+                        answer = {
+                            "success": True,
+                            "reload": "room",
+                        }
+                    else:
+                        answer = {
+                            "error": True,
+                            "data": "user is not an admin",
+                        }
+                else:
+                    answer = {
+                        "error": True,
+                        "data": "user is not in the room",
+                    }
+                await self.send({
+                    "type": "websocket.send",
+                    "text": json.dumps(answer)
+                })
+            case "make_admin":
+                room_id = received["room_id"]
+                user_id = received["user_id"]
+                room = await database_sync_to_async(Room.objects.get)(pk=room_id)
+                if await database_sync_to_async(room.users.filter(id=received['user_id']).exists)():
+                    room_administration = await database_sync_to_async(RoomAdmin.objects.get)(room_id=room_id)
+                    if not await database_sync_to_async(room_administration.admins.filter(id=received['user_id']).exists)():
+                        user = await database_sync_to_async(User.objects.get)(pk=user_id)
+                        await database_sync_to_async(room_administration.admins.add)(user)
+                        await (database_sync_to_async(print)
+                               (await database_sync_to_async(room_administration.admins.all)()))
+                        answer = {
+                            "success": True,
+                            "reload": "room",
+                        }
+                    else:
+                        answer = {
+                            "error": True,
+                            "data": "user is an admin already",
+                        }
+                else:
+                    answer = {
+                        "error": True,
+                        "data": "user is not in the room",
+                    }
+                await self.send({
+                    "type": "websocket.send",
+                    "text": json.dumps(answer)
+                })
             case "users":
                 users_data = await database_sync_to_async(list)(User.objects.all().values('id', 'username'))
                 answer = {

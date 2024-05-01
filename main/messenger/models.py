@@ -4,8 +4,8 @@ from django.contrib.auth.models import User
 
 class Room(models.Model):
     users = models.ManyToManyField(User)
-    name = models.CharField(max_length=100, default="none")
-    rules = models.CharField(max_length=100, default="none")
+    name = models.CharField(max_length=200, default="none")
+    rules = models.CharField(max_length=300, default="none")
 
     def __str__(self):
         return "Room: " + self.name
