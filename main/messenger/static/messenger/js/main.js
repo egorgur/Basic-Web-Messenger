@@ -46,6 +46,43 @@ const DATA = {
         }
     },
 }
+const Data = {
+    user: {id: null, name: "",},
+    allUsers:[],
+    currentRoomId: null,
+    getCurrentRoom(){return this.rooms[this.currentRoomId]},
+    rooms:{/*
+        <roomId>:{
+            insertMessage(messageData){
+                ...
+            },
+            element: document.getElementById("room_"+<room_id>),
+            messagesRequestCount: 0 # it ++'s with every new REQUESTS.requestRoomMessages(),
+            scrollPosition: <scrollPos>,
+            name: <roomName>,
+            rules: <roomRules>,
+            users: [{Id<userId>}]
+            messages: {
+                <message_id>:{
+                    element: document.getElementById("message_"+<message_id>)
+                    text: <message_text>,
+                    authorId: <author_id>,
+                    media: {
+                        <media_id>:{
+                            messageId: <message_id>,
+                            file: <file>,
+                        },
+                    setNewValues(text=this.text,authorId=this.authorId,media=this.media){
+                        this.text=text
+                        this.authorId=authorId
+                        this.media=media
+                    },
+                  }
+               }
+           }
+        }
+    */},
+}
 const INPUT = {
     textInputElement: document.getElementById('input'),
     /**
@@ -85,7 +122,11 @@ INPUT.textInputElement.addEventListener('keydown', function (e) {
         INPUT.textInputElement.value = ""
     }
 });
-
+messageDiv.addEventListener("scroll", getScrollPosition)
+function getScrollPosition() {
+              let y = messageDiv.scrollTop;
+              console.log(y); // scroll position from top
+            }
 function sortMessagesByTime() {
     DATA.currentRoom.messages.sort((mes1, mes2) => {
         const time1 = parseInt(mes1.timestamp)
@@ -401,13 +442,16 @@ function webSocketDataHandler(data) {
             showMessages()
         }
     }
+    if (data["updateMessage"]){
+        const message_data = data["updateMessage"]
+        createMessageDiv(message_data)
+    }
     if (data["allUsers"]) {
         DATA.allUsers = data['allUsers']
     }
     if (data["reload"]) {
         reload(data["reload"])
     }
-    // console.log("current room ", DATA.currentRoom)
 }
 
 function showRooms() {
@@ -429,8 +473,14 @@ function createRoomDiv(room) {
     roomsDiv.appendChild(div);
 }
 
-function createMessageDiv(message) {
-    let div = document.createElement("div");
+
+function createMessageDiv(message){
+    let div = document.getElementById("message_" + message.id)
+    let isNew = false
+    if (div===null){
+        isNew = true
+        div = document.createElement("div");
+    }
     div.className = "message"
     div.id = "message_" + message.id
     const Author = DATA.allUsers.find((user) => user.id === message.author_id_id)
@@ -438,6 +488,7 @@ function createMessageDiv(message) {
         "</div><div class=\"message-body\">" + message.message + "</div>"
     for (const file in message["media"]) {
         const fileData = message["media"][file]
+        console.log(fileData)
         const format = fileData['file'].split('.').pop()
         console.log("format ", format)
         const mediaHref = "http://" + window.location.host + "/media/" + fileData['file']
@@ -453,12 +504,11 @@ function createMessageDiv(message) {
                 + "<a style='max-width: 400px;' href=\'" + mediaHref + "\'> File: " + fileData["file_name"] + "</a>"
                 + "</div>"
         }
-
     }
-    message.message;
-    messageDiv.appendChild(div);
+    if (isNew){
+        messageDiv.appendChild(div);
+    }
 }
-
 function chooseRoom(id) {
     if (DATA.currentRoom.id !== id) {
         DATA.currentRoom.id = id

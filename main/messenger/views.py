@@ -1,3 +1,5 @@
+import os.path
+
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.contrib.auth.models import User
@@ -6,8 +8,11 @@ from django.core.files.storage import FileSystemStorage
 
 from channels.layers import get_channel_layer
 
-from .models import Media
 from asgiref.sync import async_to_sync
+
+from main import settings
+
+from .models import Media, Room, Message
 
 import dataclasses
 from dataclasses import dataclass
@@ -74,6 +79,23 @@ def save_name(request):
     return JsonResponse(answer)
 
 
+def media_view(request, path):
+    if request.user.is_anonymous:
+        return HttpResponse("restricted access")
+    if request.method == "GET":
+        media = Media.objects.get(file=path)
+        message_id = media.message_id
+        message = Message.objects.get(pk=message_id)
+        room = message.room_id
+        if room.users.filter(id=request.user.id).exists():
+            media_path = os.path.join(settings.MEDIA_ROOT, path)
+            with open(media_path, "rb") as file:
+                return HttpResponse(file.read(), content_type="application/octet-stream")
+        else:
+            HttpResponse("restricted access")
+    else:
+        HttpResponse("restricted access")
+
 def files(request):
     if request.method == "POST":
         try:
@@ -107,7 +129,7 @@ def files(request):
                 "text": json.dumps(update_request),
             }
             async_to_sync(channel.group_send)(room_name, group_request)
-            print("channel",channel)
+            print("channel", channel)
         except Exception as e:
             print("error", e)
             answer = {
