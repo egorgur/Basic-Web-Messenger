@@ -46,43 +46,235 @@ const DATA = {
         }
     },
 }
+
 const Data = {
     user: {id: null, name: "",},
-    allUsers:[],
+    users: {/**
+         <userId>:{name:<userName>}
+         */
+    },
     currentRoomId: null,
-    getCurrentRoom(){return this.rooms[this.currentRoomId]},
-    rooms:{/*
-        <roomId>:{
-            insertMessage(messageData){
-                ...
-            },
-            element: document.getElementById("room_"+<room_id>),
-            messagesRequestCount: 0 # it ++'s with every new REQUESTS.requestRoomMessages(),
-            scrollPosition: <scrollPos>,
-            name: <roomName>,
-            rules: <roomRules>,
-            users: [{Id<userId>}]
-            messages: {
-                <message_id>:{
-                    element: document.getElementById("message_"+<message_id>)
-                    text: <message_text>,
-                    authorId: <author_id>,
-                    media: {
-                        <media_id>:{
-                            messageId: <message_id>,
-                            file: <file>,
-                        },
-                    setNewValues(text=this.text,authorId=this.authorId,media=this.media){
-                        this.text=text
-                        this.authorId=authorId
-                        this.media=media
-                    },
-                  }
-               }
-           }
+    rooms: {/**
+         <roomId>:{
+         insertMessage(messageData){},
+         element: document.getElementById("room_"+<room_id>),
+         messagesRequestCount: 0 # it ++'s with every new REQUESTS.requestRoomMessages(),
+         requestMessages(){},
+         scrollPosition: <scrollPos>,
+         name: <roomName>,
+         rules: <roomRules>,
+         users: {
+         <userId>:{name:<userName>}
+         },
+         owner: {id:<ownerId>,name:<ownerName>},
+         admins: {
+         <adminId>:{name:<adminName>}
+         },
+         messages: {
+         <message_id>:{
+         element: document.getElementById("message_"+<message_id>)
+         text: <message_text>,
+         authorId: <author_id>,
+         media: {
+         <media_id>:{
+         messageId: <message_id>,
+         file: <file>,
+         },
+         },
+         setNewValues(text=this.text,authorId=this.authorId,media=this.media){
+         this.text=text
+         this.authorId=authorId
+         this.media=media
+         },
+         },
+         },
+         }
+
+         */
+    },
+
+    getCurrentRoom() {
+        return this.rooms[this.currentRoomId]
+    },
+    createRoomDiv(roomData) {
+        let div = document.createElement("div");
+        div.className = "room"
+        div.onclick = function () {
+            chooseRoom(room.id)
         }
-    */},
+        div.id = "room_" + room.id
+        div.innerHTML = 'Room ' + room.id + ' ' + room.name;
+        roomsDiv.appendChild(div);
+    },
+    deleteRoomDiv(roomId) {
+        this.rooms[roomId].element.remove()
+    },
+    deleteRoom(roomId) {
+        this.deleteRoomDiv(roomId)
+        for (const messageId in this.rooms[roomId].messages){
+            this.rooms[roomId].deleteMessage(messageId)
+        }
+        if (this.currentRoomId === roomId) {
+            this.currentRoomId = null
+        }
+        delete this.rooms[roomId]
+    },
+    addRoom(roomId) {
+        this.rooms[roomId] = {
+            element: document.getElementById("room_" + roomId),
+            name: "",
+            rules: "",
+            owner: {},
+            admins: {},
+            users: {},
+            messages: {},
+            messagesRequestsCount: 0,
+            scrollPosition: null,
+
+
+            reloadMessageDiv(messageData) {
+                const div = document.getElementById("message_" + messageData["messageId"])
+                const timestamp = messageData["timestamp"]
+                console.log("timestamp", timestamp)
+                const author = DATA.allUsers.find((user) => user.id === messageData.authorId)
+                div.innerHTML = "<div class=\"message-author\">" + author.name +
+                    "</div><div class=\"message-body\">" + messageData.text + "</div>"
+                for (const file in messageData["media"]) {
+                    const fileData = messageData["media"][file]
+                    console.log(fileData)
+                    const format = fileData['file'].split('.').pop()
+                    console.log("format ", format)
+                    const mediaHref = "http://" + window.location.host + "/media/" + fileData['file']
+                    if (["mp4", "webm"].find(value => value === format)) {
+                        div.innerHTML += "<div>" + "<video style='max-width: 400px' src=\'" + mediaHref + "\' controls/>" + "</div>"
+                    } else if (["jpg", "jpeg", "png", "gif"].find(value => value === format)) {
+                        div.innerHTML += "<div>" + "<img style='max-width: 400px' src=\'" + mediaHref + "\' alt=''/>" + "</div>"
+                    } else if (["waw", "mp3"].find(value => value === format)) {
+                        div.innerHTML += "<div>" + "<audio style='' src=\'" + mediaHref + "\' controls/>" + "</div>"
+                    } else {
+                        div.innerHTML +=
+                            "<div style='min-height: 40px; margin: 5px 0;' class=\'flex-r a-c\'>"
+                            + "<a style='max-width: 400px;' href=\'" + mediaHref + "\'> File: " + fileData["file_name"] + "</a>"
+                            + "</div>"
+                    }
+                }
+            },
+            createMessageDiv(messageData) {
+                const div = document.createElement("div");
+                div.className = "message"
+                const timestamp = messageData["timestamp"]
+                console.log("timestamp", timestamp)
+                div.id = "message_" + id
+                const author = DATA.allUsers.find((user) => user.id === messageData.authorId)
+                div.innerHTML = "<div class=\"message-author\">" + author.name +
+                    "</div><div class=\"message-body\">" + messageData.text + "</div>"
+                for (const file in messageData["media"]) {
+                    const fileData = messageData["media"][file]
+                    console.log(fileData)
+                    const format = fileData['file'].split('.').pop()
+                    console.log("format ", format)
+                    const mediaHref = "http://" + window.location.host + "/media/" + fileData['file']
+                    if (["mp4", "webm"].find(value => value === format)) {
+                        div.innerHTML += "<div>" + "<video style='max-width: 400px' src=\'" + mediaHref + "\' controls/>" + "</div>"
+                    } else if (["jpg", "jpeg", "png", "gif"].find(value => value === format)) {
+                        div.innerHTML += "<div>" + "<img style='max-width: 400px' src=\'" + mediaHref + "\' alt=''/>" + "</div>"
+                    } else if (["waw", "mp3"].find(value => value === format)) {
+                        div.innerHTML += "<div>" + "<audio style='' src=\'" + mediaHref + "\' controls/>" + "</div>"
+                    } else {
+                        div.innerHTML +=
+                            "<div style='min-height: 40px; margin: 5px 0;' class=\'flex-r a-c\'>"
+                            + "<a style='max-width: 400px;' href=\'" + mediaHref + "\'> File: " + fileData["file_name"] + "</a>"
+                            + "</div>"
+                    }
+                }
+                messageDiv.appendChild(div);
+            },
+            deleteMessageDiv(messageId) {
+                const div = document.getElementById("message_" + messageId)
+                div.remove()
+            },
+            insertMessage(messageData) {
+                const messageId = messageData["messageId"]
+                if (this.messages[messageId]) {
+                    this.messages[messageId].setMessageData(messageData)
+                } else {
+                    this.createMessageDiv(messageData)
+                    this.messages[messageId] = {
+                        element: document.getElementById("message_" + messageId),
+                        text: messageData["text"],
+                        authorId: messageData["authorId"],
+                        media: messageData["media"],
+                        roomId: roomId,
+                        timestamp: messageData["timestamp"],
+                        setMessageData(messageData) {
+                            this.text = messageData["text"]
+                            this.authorId = messageData["authorId"]
+                            this.media = messageData["media"]
+                            this.timestamp = messageData["timestamp"]
+                            Data.rooms[roomId].reloadMessageDiv(messageData)
+                            // this.roomId
+                        },
+                    }
+                }
+                console.log("Room_" + roomId + " message_" + messageId, this.messages[messageId])
+            },
+            deleteMessage(messageId) {
+                console.log("deleted message_" + messageId, this.messages)
+                this.deleteMessageDiv(messageId)
+                delete this.messages[messageId]
+
+            },
+            isAdmin() {
+                console.log("is Admin", Data.user.id in this.admins)
+                return Data.user.id in this.admins
+            },
+            isOwner() {
+                console.log("is Owner", Data.user.id === this.owner.id)
+                return Data.user.id === this.owner.id
+            },
+        }
+    },
+
 }
+const messagesWindow = {
+    window: document.getElementById("messages"),
+    displayMessages(messages) {
+        for (const id in messages) {
+            this.createMessageDiv(id, messages[id])
+        }
+    },
+    createMessageDiv(id, message) {
+        const div = document.createElement("div");
+        div.className = "message"
+        div.id = "message_" + id
+        const author = DATA.allUsers.find((user) => user.id === message.authorId)
+        div.innerHTML = "<div class=\"message-author\">" + author.name +
+            "</div><div class=\"message-body\">" + message.message + "</div>"
+        for (const file in message["media"]) {
+            const fileData = message["media"][file]
+            console.log(fileData)
+            const format = fileData['file'].split('.').pop()
+            console.log("format ", format)
+            const mediaHref = "http://" + window.location.host + "/media/" + fileData['file']
+            if (["mp4", "webm"].find(value => value === format)) {
+                div.innerHTML += "<div>" + "<video style='max-width: 400px' src=\'" + mediaHref + "\' controls/>" + "</div>"
+            } else if (["jpg", "jpeg", "png", "gif"].find(value => value === format)) {
+                div.innerHTML += "<div>" + "<img style='max-width: 400px' src=\'" + mediaHref + "\' alt=''/>" + "</div>"
+            } else if (["waw", "mp3"].find(value => value === format)) {
+                div.innerHTML += "<div>" + "<audio style='' src=\'" + mediaHref + "\' controls/>" + "</div>"
+            } else {
+                div.innerHTML +=
+                    "<div style='min-height: 40px; margin: 5px 0;' class=\'flex-r a-c\'>"
+                    + "<a style='max-width: 400px;' href=\'" + mediaHref + "\'> File: " + fileData["file_name"] + "</a>"
+                    + "</div>"
+            }
+        }
+        this.window.appendChild(div);
+
+    },
+
+}
+
 const INPUT = {
     textInputElement: document.getElementById('input'),
     /**
@@ -123,10 +315,12 @@ INPUT.textInputElement.addEventListener('keydown', function (e) {
     }
 });
 messageDiv.addEventListener("scroll", getScrollPosition)
+
 function getScrollPosition() {
-              let y = messageDiv.scrollTop;
-              console.log(y); // scroll position from top
-            }
+    let y = messageDiv.scrollTop;
+    console.log(y); // scroll position from top
+}
+
 function sortMessagesByTime() {
     DATA.currentRoom.messages.sort((mes1, mes2) => {
         const time1 = parseInt(mes1.timestamp)
@@ -442,7 +636,7 @@ function webSocketDataHandler(data) {
             showMessages()
         }
     }
-    if (data["updateMessage"]){
+    if (data["updateMessage"]) {
         const message_data = data["updateMessage"]
         createMessageDiv(message_data)
     }
@@ -474,10 +668,10 @@ function createRoomDiv(room) {
 }
 
 
-function createMessageDiv(message){
+function createMessageDiv(message) {
     let div = document.getElementById("message_" + message.id)
     let isNew = false
-    if (div===null){
+    if (div === null) {
         isNew = true
         div = document.createElement("div");
     }
@@ -505,10 +699,11 @@ function createMessageDiv(message){
                 + "</div>"
         }
     }
-    if (isNew){
+    if (isNew) {
         messageDiv.appendChild(div);
     }
 }
+
 function chooseRoom(id) {
     if (DATA.currentRoom.id !== id) {
         DATA.currentRoom.id = id
