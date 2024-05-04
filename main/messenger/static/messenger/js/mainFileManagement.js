@@ -22,9 +22,9 @@ const fileInputWindow = {
     },
     showFiles() {
         this.window.replaceChildren()
-        if (INPUT[DATA.currentRoom.id]) {
-            for (const file in INPUT[DATA.currentRoom.id]["files"]) {
-                const fileData = INPUT[DATA.currentRoom.id]["files"][file]
+        if (INPUT[Data.currentRoomId]) {
+            for (const file in INPUT[Data.currentRoomId]["files"]) {
+                const fileData = INPUT[Data.currentRoomId]["files"][file]
                 this.createFileDiv(file, fileData)
             }
         }
@@ -37,7 +37,7 @@ const fileInputWindow = {
         div.innerHTML = "<span>" + Name + "</span>" + "<button>" + "&times;" + "</button>"
         const button = div.getElementsByTagName("button")
         button.item(0).onclick = function () {
-            INPUT[DATA.currentRoom.id]["files"].splice(file, 1)
+            INPUT[Data.currentRoomId]["files"].splice(file, 1)
             fileInputWindow.showFiles()
         }
         this.window.appendChild(div);
@@ -53,10 +53,10 @@ window.window.addEventListener("drop", (event) => {
         let box = dropZone.window.getBoundingClientRect();
         if (((box.left - 1 <= event.x) && (event.x <= box.right + 1)) && ((box.top - 1 <= event.y) && (event.y <= box.bottom + 1))) {
             if (DATA.currentRoom.id !== null) {
-                if (INPUT[DATA.currentRoom.id]) {
-                    INPUT[DATA.currentRoom.id]["files"].push(event.dataTransfer.files[0])
+                if (INPUT[Data.currentRoomId]) {
+                    INPUT[Data.currentRoomId]["files"].push(event.dataTransfer.files[0])
                 } else {
-                    INPUT[DATA.currentRoom.id] = {
+                    INPUT[Data.currentRoomId] = {
                         text: "",
                         files: [event.dataTransfer.files[0]]
                     }
@@ -71,7 +71,7 @@ window.window.addEventListener("drop", (event) => {
 window.addEventListener("dragover", (event) => {
     event.preventDefault()
     event.stopPropagation()
-    if (DATA.currentRoom.id !== null) {
+    if (Data.currentRoomId !== null) {
         dropZone.openWindow()
         let box = dropZone.window.getBoundingClientRect();
         if (((box.left - 1 <= event.x) && (event.x <= box.right + 1)) && ((box.top - 1 <= event.y) && (event.y <= box.bottom + 1))) {
@@ -105,7 +105,7 @@ function uploadFile(file, messageId) {
 
     let form = new FormData();
     form.append("file", file)
-    form.append("roomId", DATA.currentRoom.id)
+    form.append("roomId", Data.currentRoomId)
     form.append("messageId", messageId)
     form.append("enctype", "multipart/form-data")
     console.log("form",...form)

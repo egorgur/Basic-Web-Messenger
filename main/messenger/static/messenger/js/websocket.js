@@ -15,7 +15,7 @@ websocket.onopen = function () {
 websocket.onmessage = function (event) {
     // try {
         const data = JSON.parse(event.data)
-        webSocketDataHandler(data)
+        websocketDataHandler(data)
     // } catch (e) {
     //     console.log('Error:', e.message);
     // }

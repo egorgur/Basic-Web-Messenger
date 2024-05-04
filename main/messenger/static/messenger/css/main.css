@@ -93,7 +93,7 @@ header {
     display: flex;
     max-height: 800px;
     /*max-height: 100%;*/
-    flex-direction: column;
+    flex-direction: column-reverse;
     flex-grow: 1;
     scroll-behavior: smooth;
     overflow-x: hidden;

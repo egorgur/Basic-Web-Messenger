@@ -8,102 +8,49 @@ const groupNameElement = document.getElementById('groupDataDisplay')
 const groupDataDisplay = document.getElementById('groupDataDisplay')
 const overlay = document.getElementById('overlay')
 
-const DATA = {
-    userData: {
-        id: null,
-        username: "",
-    },
-    currentRoom: {
-        id: null,
-        name: '',
-        ownerId: null,
-        admins: [],
-        rules: {},
-        users: [],
-        messages: [],
-        text: {},
-        files: [],
-    },
-    rooms: [],
-    allUsers: [],
-    userIsAdmin(userId) {
-        return (DATA.currentRoom.admins.find((user) => user.id === userId) !== undefined)
-    },
-    userIsOwner(userId) {
-        return (DATA.currentRoom.ownerId === userId)
-    },
-    clearCurrentRoomData() {
-        this.currentRoom = {
-            id: null,
-            name: '',
-            ownerId: null,
-            admins: [],
-            rules: {},
-            users: [],
-            messages: [],
-            text: {},
-            files: [],
-        }
-    },
-}
 
 const Data = {
     user: {id: null, name: "",},
-    users: {/**
+    allUsers: {/**
          <userId>:{name:<userName>}
          */
     },
     currentRoomId: null,
-    rooms: {/**
-         <roomId>:{
-         insertMessage(messageData){},
-         element: document.getElementById("room_"+<room_id>),
-         messagesRequestCount: 0 # it ++'s with every new REQUESTS.requestRoomMessages(),
-         requestMessages(){},
-         scrollPosition: <scrollPos>,
-         name: <roomName>,
-         rules: <roomRules>,
-         users: {
-         <userId>:{name:<userName>}
-         },
-         owner: {id:<ownerId>,name:<ownerName>},
-         admins: {
-         <adminId>:{name:<adminName>}
-         },
-         messages: {
-         <message_id>:{
-         element: document.getElementById("message_"+<message_id>)
-         text: <message_text>,
-         authorId: <author_id>,
-         media: {
-         <media_id>:{
-         messageId: <message_id>,
-         file: <file>,
-         },
-         },
-         setNewValues(text=this.text,authorId=this.authorId,media=this.media){
-         this.text=text
-         this.authorId=authorId
-         this.media=media
-         },
-         },
-         },
-         }
-
-         */
-    },
+    rooms: {},
 
     getCurrentRoom() {
         return this.rooms[this.currentRoomId]
+    },
+    chooseRoom(id) {
+        if (this.currentRoomId !== null) {
+            this.getCurrentRoom().hideMessages()
+        }
+        this.currentRoomId = id
+        if (INPUT[Data.currentRoomId]) {
+            INPUT.textInputElement.value = INPUT[Data.currentRoomId]['text']
+        } else {
+            INPUT.textInputElement.value = ""
+        }
+        console.log(Data.getCurrentRoom().messagesRequestsCount)
+        REQUESTS.requestRoomData()
+        if (Data.getCurrentRoom().messagesRequestsCount === 0) {
+            console.log("requested messages first time")
+            REQUESTS.requestRoomMessages(Data.getCurrentRoom().messagesRequestsCount)
+            Data.getCurrentRoom().messagesRequestsCount++
+        } else {
+            Data.getCurrentRoom().showMessages()
+        }
+        fileInputWindow.openWindow()
+        showRoomName()
     },
     createRoomDiv(roomData) {
         let div = document.createElement("div");
         div.className = "room"
         div.onclick = function () {
-            chooseRoom(room.id)
+            Data.chooseRoom(roomData.id)
         }
-        div.id = "room_" + room.id
-        div.innerHTML = 'Room ' + room.id + ' ' + room.name;
+        div.id = "room_" + roomData.id
+        div.innerHTML = 'Room ' + roomData.id + ' ' + roomData.name;
         roomsDiv.appendChild(div);
     },
     deleteRoomDiv(roomId) {
@@ -111,7 +58,7 @@ const Data = {
     },
     deleteRoom(roomId) {
         this.deleteRoomDiv(roomId)
-        for (const messageId in this.rooms[roomId].messages){
+        for (const messageId in this.rooms[roomId].messages) {
             this.rooms[roomId].deleteMessage(messageId)
         }
         if (this.currentRoomId === roomId) {
@@ -124,7 +71,7 @@ const Data = {
             element: document.getElementById("room_" + roomId),
             name: "",
             rules: "",
-            owner: {},
+            ownerId: null,
             admins: {},
             users: {},
             messages: {},
@@ -136,7 +83,7 @@ const Data = {
                 const div = document.getElementById("message_" + messageData["messageId"])
                 const timestamp = messageData["timestamp"]
                 console.log("timestamp", timestamp)
-                const author = DATA.allUsers.find((user) => user.id === messageData.authorId)
+                const author = Data.allUsers[messageData.authorId]
                 div.innerHTML = "<div class=\"message-author\">" + author.name +
                     "</div><div class=\"message-body\">" + messageData.text + "</div>"
                 for (const file in messageData["media"]) {
@@ -160,13 +107,14 @@ const Data = {
                 }
             },
             createMessageDiv(messageData) {
+                // console.log("messageData", messageData)
                 const div = document.createElement("div");
                 div.className = "message"
+                div.style.order = messageData["order"]
                 const timestamp = messageData["timestamp"]
-                console.log("timestamp", timestamp)
-                div.id = "message_" + id
-                const author = DATA.allUsers.find((user) => user.id === messageData.authorId)
-                div.innerHTML = "<div class=\"message-author\">" + author.name +
+                div.id = "message_" + messageData["messageId"]
+                const author = Data.allUsers[messageData.authorId]
+                div.innerHTML = "<div class=\"message-author\">" + author.username +
                     "</div><div class=\"message-body\">" + messageData.text + "</div>"
                 for (const file in messageData["media"]) {
                     const fileData = messageData["media"][file]
@@ -187,92 +135,104 @@ const Data = {
                             + "</div>"
                     }
                 }
-                messageDiv.appendChild(div);
+
+                messageDiv.appendChild(div)
             },
             deleteMessageDiv(messageId) {
-                const div = document.getElementById("message_" + messageId)
-                div.remove()
+                this.messages[messageId].hide()
+            },
+            calculateOrder() {
+                let messageObjects = []
+                for (const messageId in this.messages) {
+                    messageObjects.push({
+                        messageId: messageId, timestamp: this.messages[messageId].timestamp
+                    })
+                }
+                messageObjects.sort((a, b) => {
+                    if (a.timestamp < b.timestamp) {
+                        return -1
+                    }
+                    if (a.timestamp > b.timestamp) {
+                        return 1
+                    }
+                    return 0
+                })
+                // console.log("sortedMessageObjects",messageObjects)
+                for (const key in messageObjects) {
+                    this.messages[messageObjects[key]["messageId"]].order = -key
+                }
             },
             insertMessage(messageData) {
+                messageData = wierdMessageDataParser(messageData)
                 const messageId = messageData["messageId"]
                 if (this.messages[messageId]) {
                     this.messages[messageId].setMessageData(messageData)
                 } else {
-                    this.createMessageDiv(messageData)
                     this.messages[messageId] = {
-                        element: document.getElementById("message_" + messageId),
+                        element: null,
+                        order: null,
+                        messageId: messageData["messageId"],
                         text: messageData["text"],
                         authorId: messageData["authorId"],
+                        hasMedia: messageData["hasMedia"],
                         media: messageData["media"],
                         roomId: roomId,
-                        timestamp: messageData["timestamp"],
+                        timestamp: parseInt(messageData["timestamp"]),
                         setMessageData(messageData) {
                             this.text = messageData["text"]
                             this.authorId = messageData["authorId"]
-                            this.media = messageData["media"]
+                            this.hasMedia = messageData["hasMedia"]
                             this.timestamp = messageData["timestamp"]
-                            Data.rooms[roomId].reloadMessageDiv(messageData)
-                            // this.roomId
+                            if (this.element !== null) {
+                                Data.rooms[roomId].reloadMessageDiv(messageData)
+                            }
+                        },
+                        show() {
+                            Data.rooms[roomId].calculateOrder()
+                            console.log("messageShow", this.messageId, this)
+                            if (this.element === null) {
+                                messageData["order"] = this.order
+                                Data.rooms[roomId].createMessageDiv(messageData)
+                                this.element = document.getElementById("message_" + this.messageId)
+                            }
+                        },
+                        hide() {
+                            if (this.element !== null) {
+                                this.element.remove()
+                                this.element = null
+                            }
                         },
                     }
                 }
-                console.log("Room_" + roomId + " message_" + messageId, this.messages[messageId])
+                // console.log("Room_" + roomId + " message_" + messageId, this.messages[messageId])
             },
             deleteMessage(messageId) {
                 console.log("deleted message_" + messageId, this.messages)
                 this.deleteMessageDiv(messageId)
                 delete this.messages[messageId]
-
+            },
+            showMessages() {
+                Object.keys(this.messages).reverse().forEach((messageId) => {
+                    this.messages[parseInt(messageId)].show()
+                })
+                messageDiv.scrollTop = messageDiv.scrollHeight;
+            },
+            hideMessages() {
+                Object.keys(this.messages).reverse().forEach((messageId) => {
+                    console.log("messageHide", messageId, this.messages[parseInt(messageId)])
+                    this.messages[parseInt(messageId)].hide()
+                })
             },
             isAdmin() {
                 console.log("is Admin", Data.user.id in this.admins)
                 return Data.user.id in this.admins
             },
             isOwner() {
-                console.log("is Owner", Data.user.id === this.owner.id)
-                return Data.user.id === this.owner.id
+                console.log("is Owner", Data.user.id === this.ownerId)
+                return Data.user.id === this.ownerId
             },
         }
     },
-
-}
-const messagesWindow = {
-    window: document.getElementById("messages"),
-    displayMessages(messages) {
-        for (const id in messages) {
-            this.createMessageDiv(id, messages[id])
-        }
-    },
-    createMessageDiv(id, message) {
-        const div = document.createElement("div");
-        div.className = "message"
-        div.id = "message_" + id
-        const author = DATA.allUsers.find((user) => user.id === message.authorId)
-        div.innerHTML = "<div class=\"message-author\">" + author.name +
-            "</div><div class=\"message-body\">" + message.message + "</div>"
-        for (const file in message["media"]) {
-            const fileData = message["media"][file]
-            console.log(fileData)
-            const format = fileData['file'].split('.').pop()
-            console.log("format ", format)
-            const mediaHref = "http://" + window.location.host + "/media/" + fileData['file']
-            if (["mp4", "webm"].find(value => value === format)) {
-                div.innerHTML += "<div>" + "<video style='max-width: 400px' src=\'" + mediaHref + "\' controls/>" + "</div>"
-            } else if (["jpg", "jpeg", "png", "gif"].find(value => value === format)) {
-                div.innerHTML += "<div>" + "<img style='max-width: 400px' src=\'" + mediaHref + "\' alt=''/>" + "</div>"
-            } else if (["waw", "mp3"].find(value => value === format)) {
-                div.innerHTML += "<div>" + "<audio style='' src=\'" + mediaHref + "\' controls/>" + "</div>"
-            } else {
-                div.innerHTML +=
-                    "<div style='min-height: 40px; margin: 5px 0;' class=\'flex-r a-c\'>"
-                    + "<a style='max-width: 400px;' href=\'" + mediaHref + "\'> File: " + fileData["file_name"] + "</a>"
-                    + "</div>"
-            }
-        }
-        this.window.appendChild(div);
-
-    },
-
 }
 
 const INPUT = {
@@ -296,13 +256,15 @@ const INPUT = {
         this[roomId]["text"] = ""
     },
 }
+
+
 INPUT.textInputElement.addEventListener('keydown', function (e) {
     const keyCode = e.which || e.keyCode;
-    if (DATA.currentRoom.id !== null) {
-        if (INPUT[DATA.currentRoom.id]) {
-            INPUT[DATA.currentRoom.id]["text"] = INPUT.textInputElement.value
+    if (Data.currentRoomId !== null) {
+        if (INPUT[Data.currentRoomId]) {
+            INPUT[Data.currentRoomId]["text"] = INPUT.textInputElement.value
         } else {
-            INPUT[DATA.currentRoom.id] = {
+            INPUT[Data.currentRoomId] = {
                 text: INPUT.textInputElement.value,
                 files: []
             }
@@ -317,31 +279,20 @@ INPUT.textInputElement.addEventListener('keydown', function (e) {
 messageDiv.addEventListener("scroll", getScrollPosition)
 
 function getScrollPosition() {
-    let y = messageDiv.scrollTop;
-    console.log(y); // scroll position from top
-}
+    let y = messageDiv.scrollTop
+    let height = messageDiv.scrollHeight
+    let test = messageDiv.clientHeight
+    console.log("y", y, "height", height, "clHeight", test); // scroll position from top
 
-function sortMessagesByTime() {
-    DATA.currentRoom.messages.sort((mes1, mes2) => {
-        const time1 = parseInt(mes1.timestamp)
-        const time2 = parseInt(mes2.timestamp)
-        if (time1 > time2) {
-            return 1
-        } else if (time2 > time1) {
-            return -1
-        } else {
-            return 0
-        }
-    })
 }
 
 function sendMessage() {
-    if (DATA.currentRoom.id !== null) {
+    if (Data.currentRoomId !== null) {
         websocket.send(JSON.stringify({
             message: INPUT.textInputElement.value,
-            room_id: DATA.currentRoom.id,
+            room_id: Data.currentRoomId,
             request: "send_message",
-            has_media: INPUT.getFiles(DATA.currentRoom.id).length > 0,
+            has_media: INPUT.getFiles(Data.currentRoomId,).length > 0,
         }))
     }
 
@@ -350,41 +301,44 @@ function sendMessage() {
 
 const REQUESTS = {
     requestRooms() {
-        console.log('from-user', {request: 'groups'})
+        console.log('from-user', {request: 'rooms'})
         websocket.send(JSON.stringify(
-            {request: 'groups'}
+            {request: 'rooms'}
         ))
     },
     requestRoomData() {
         console.log('from-user', {
             request: 'group_data',
-            room_id: DATA.currentRoom.id
+            room_id: Data.currentRoomId,
         })
         websocket.send(JSON.stringify({
             request: 'group_data',
-            room_id: DATA.currentRoom.id
+            room_id: Data.currentRoomId,
         }))
     },
-    requestRoomMessages() {
+    requestRoomMessages(messagesRequestCount) {
         console.log('from-user', {
+            messages_request_count: messagesRequestCount,
             request: 'room_messages',
-            room_id: DATA.currentRoom.id
+            room_id: Data.currentRoomId,
         })
         websocket.send(JSON.stringify({
+            messages_request_count: messagesRequestCount,
             request: 'room_messages',
-            room_id: DATA.currentRoom.id
+            room_id: Data.currentRoomId,
         }))
+
     },
     requestSaveRoomRules() {
         console.log("from-user", {
             request: "save_rules",
-            room_id: DATA.currentRoom.id,
-            rules: DATA.currentRoom.rules,
+            room_id: Data.currentRoomId,
+            rules: Data.getCurrentRoom().rules,
         })
         websocket.send(JSON.stringify({
             request: "save_rules",
-            room_id: DATA.currentRoom.id,
-            rules: DATA.currentRoom.rules,
+            room_id: Data.currentRoomId,
+            rules: Data.getCurrentRoom().rules,
         }))
     },
     requestMyUser() {
@@ -472,26 +426,26 @@ const REQUESTS = {
     requestLeaveRoom() {
         console.log('from-user', {
             request: "leave",
-            user_id: DATA.userData.id,
-            room_id: DATA.currentRoom.id,
+            user_id: Data.user.id,
+            room_id: Data.currentRoomId,
         })
         websocket.send(JSON.stringify(
             {
                 request: "leave",
-                user_id: DATA.userData.id,
-                room_id: DATA.currentRoom.id,
+                user_id: Data.user.id,
+                room_id: Data.currentRoomId,
             }
         ))
     },
     requestDeleteRoom() {
         console.log('from-user', {
             request: "delete_room",
-            room_id: DATA.currentRoom.id,
+            room_id: Data.currentRoomId,
         })
         websocket.send(JSON.stringify(
             {
                 request: "delete_room",
-                room_id: DATA.currentRoom.id,
+                room_id: Data.currentRoomId,
             }
         ))
     },
@@ -499,14 +453,13 @@ const REQUESTS = {
         console.log('from-user', {
             request: "new_room",
             name: name,
-            creator: DATA.userData.id,
             users: users,
         })
         websocket.send(JSON.stringify(
             {
                 request: "new_room",
                 name: name,
-                creator: DATA.userData.id,
+                creator: Data.user.id,
                 users: newRoomWindow.chosenUsers,
             }
         ))
@@ -526,40 +479,55 @@ function reload(type) {
     }
 }
 
-function webSocketDataHandler(data) {
+function websocketDataHandler(data) {
     console.log('from-server:', data)
     if (data["rooms"]) {
-        DATA.rooms = data['rooms']
-        if (!(DATA.rooms.find((room) => room.id === DATA.currentRoom.id))) {
-            DATA.clearCurrentRoomData()
-            showMessages()
+        for (const key in data["rooms"]) {
+            const roomData = data["rooms"][key]
+            Data.createRoomDiv(roomData)
+            Data.addRoom(roomData["id"])
+            Data.rooms[roomData["id"]].name = roomData["name"]
+            Data.rooms[roomData["id"]].rules = roomData["rules"]
         }
-        showRooms()
-        showRoomName()
+    }
+    if (data["allUsers"]) {
+        for (const key in data["allUsers"]) {
+            const userId = data["allUsers"][key]["id"]
+            Data.allUsers[userId] = data["allUsers"][key]
+        }
+    }
+    if (data["roomName"]) {
+        if (data["roomId"]) {
+            Data.rooms[data["roomId"]].name = data["roomName"]
+        }
     }
     if (data["ownerId"]) {
-        DATA.currentRoom["ownerId"] = data["ownerId"]
+        console.log(data["ownerId"])
+        Data.getCurrentRoom().ownerId = data["ownerId"]
     }
     if (data["admins"]) {
-        DATA.currentRoom["admins"] = data["admins"]
+        for (const key in data["admins"]) {
+            const adminId = data["admins"][key]["id"]
+            Data.getCurrentRoom().admins[adminId] = data["admins"][key]
+        }
         if (setRulesWindow.open) {
             setRulesWindow.showUsers()
         }
     }
     if (data["roomRules"]) {
         if (data["roomRules"] !== "none") {
-            DATA.currentRoom.rules = JSON.parse(data["roomRules"])
+            Data.getCurrentRoom().rules = JSON.parse(data["roomRules"])
         } else {
-            DATA.currentRoom.rules.ruleUserCanPost = true
-            DATA.currentRoom.rules.ruleUserCanRenameRoom = true
-            DATA.currentRoom.rules.ruleUserCanInvite = true
-            DATA.currentRoom.rules.ruleUserCanKick = false
-            DATA.currentRoom.rules.ruleAdminCanAddAdmins = true
-            DATA.currentRoom.rules.ruleAdminCanRemoveAdmins = false
-            DATA.currentRoom.rules.ruleAdminCanRenameRoom = true
+            Data.getCurrentRoom().rules.ruleUserCanPost = true
+            Data.getCurrentRoom().rules.ruleUserCanRenameRoom = true
+            Data.getCurrentRoom().rules.ruleUserCanInvite = true
+            Data.getCurrentRoom().rules.ruleUserCanKick = false
+            Data.getCurrentRoom().rules.ruleAdminCanAddAdmins = true
+            Data.getCurrentRoom().rules.ruleAdminCanRemoveAdmins = false
+            Data.getCurrentRoom().rules.ruleAdminCanRenameRoom = true
         }
-        if (!DATA.userIsOwner(DATA.userData.id)) {
-            if ((!DATA.currentRoom.rules.ruleUserCanPost) && (DATA.currentRoom.rules !== "none") && (!DATA.userIsAdmin(DATA.userData.id))) {
+        if (!Data.getCurrentRoom().isOwner(Data.user.id)) {
+            if ((!Data.getCurrentRoom().rules.ruleUserCanPost) && (Data.getCurrentRoom().rules !== "none") && (!Data.getCurrentRoom().isAdmin(Data.user.id))) {
                 console.log("input disabled")
                 INPUT.textInputElement.setAttribute("disabled", "true")
                 INPUT.textInputElement.setAttribute("placeholder", "you cannot send messages")
@@ -568,28 +536,28 @@ function webSocketDataHandler(data) {
                 INPUT.textInputElement.removeAttribute("disabled")
                 INPUT.textInputElement.setAttribute("placeholder", "")
             }
-            if ((!DATA.currentRoom.rules.ruleUserCanRenameRoom) && (DATA.currentRoom.rules !== "none") && (!DATA.userIsAdmin(DATA.userData.id))) {
+            if ((!Data.getCurrentRoom().rules.ruleUserCanRenameRoom) && (Data.getCurrentRoom().rules !== "none") && (!Data.getCurrentRoom().isAdmin(Data.user.id))) {
                 console.log("rename disabled")
                 RoomRenameWindow.groupWindowButton.style.display = "none"
-            } else if ((DATA.userIsAdmin(DATA.userData.id)) && (!DATA.currentRoom.rules.ruleAdminCanRenameRoom)) {
+            } else if ((Data.getCurrentRoom().isAdmin(Data.user.id)) && (!Data.getCurrentRoom().rules.ruleAdminCanRenameRoom)) {
                 console.log("rename disabled")
                 RoomRenameWindow.groupWindowButton.style.display = "none"
             } else {
                 RoomRenameWindow.groupWindowButton.style.display = "inherit"
             }
-            if ((!DATA.currentRoom.rules.ruleUserCanInvite) && (DATA.currentRoom.rules !== "none") && (!DATA.userIsAdmin(DATA.userData.id))) {
+            if ((!Data.getCurrentRoom().rules.ruleUserCanInvite) && (Data.getCurrentRoom().rules !== "none") && (!Data.getCurrentRoom().isAdmin(Data.user.id))) {
                 console.log("invite disabled")
                 inviteUsersWindow.groupWindowButton.style.display = "none"
             } else {
                 inviteUsersWindow.groupWindowButton.style.display = "inherit"
             }
-            if ((!DATA.currentRoom.rules.ruleUserCanKick) && (DATA.currentRoom.rules !== "none") && (!DATA.userIsAdmin(DATA.userData.id))) {
+            if ((!Data.getCurrentRoom().rules.ruleUserCanKick) && (Data.getCurrentRoom().rules !== "none") && (!Data.getCurrentRoom().isAdmin(Data.user.id))) {
                 console.log("kick disabled")
                 kickUserWindow.groupWindowButton.style.display = "none"
             } else {
                 kickUserWindow.groupWindowButton.style.display = "inherit"
             }
-            if (!DATA.userIsAdmin(DATA.userData.id)) {
+            if (!Data.getCurrentRoom().isAdmin(Data.user.id)) {
                 setRulesWindow.groupWindowButton.style.display = "none"
             } else {
                 setRulesWindow.groupWindowButton.style.display = "inherit"
@@ -605,7 +573,10 @@ function webSocketDataHandler(data) {
         }
     }
     if (data["users"]) {
-        DATA.currentRoom["users"] = data['users']
+        for (const key in data["users"]) {
+            const userId = data["users"][key]["id"]
+            Data.getCurrentRoom().users[userId] = data["users"][key]
+        }
         if (inviteUsersWindow.open) {
             inviteUsersWindow.showUsersToInvite()
         }
@@ -614,132 +585,66 @@ function webSocketDataHandler(data) {
         }
     }
     if (data["messages"]) {
-        DATA.currentRoom["messages"] = data['messages']
-        showMessages()
+        for (const key in data["messages"]) {
+            Data.getCurrentRoom().insertMessage(data["messages"][key])
+        }
+        Data.getCurrentRoom().showMessages()
     }
     if (data["user"]) {
-        DATA.userData = data['user']
+        Data.user = data["user"]
     }
     if (data["yourMessage"]) {
-        if (INPUT[DATA.currentRoom.id]["files"].length !== 0) {
+        if (INPUT[Data.currentRoomId]["files"].length !== 0) {
             const messageId = data["yourMessage"].id
-            for (const file in INPUT[DATA.currentRoom.id]["files"]) {
-                console.log("file ", INPUT[DATA.currentRoom.id]["files"][file])
-                uploadFile(INPUT[DATA.currentRoom.id]["files"][file], messageId)
+            for (const file in INPUT[Data.currentRoomId]["files"]) {
+                console.log("file ", INPUT[Data.currentRoomId]["files"][file])
+                uploadFile(INPUT[Data.currentRoomId]["files"][file], messageId)
             }
-            INPUT.clearFileInput(DATA.currentRoom.id)
+            INPUT.clearFileInput(Data.currentRoomId)
         }
     }
     if (data["newMessage"]) {
-        if (data["newMessage"]["room_id_id"] === DATA.currentRoom.id) {
-            DATA.currentRoom.messages.push(data['newMessage'])
-            showMessages()
+        console.log("newMessage", data["newMessage"])
+        Data.getCurrentRoom().insertMessage(data["newMessage"])
+        if (data["newMessage"]["room_id_id"] === Data.currentRoomId) {
+            Data.getCurrentRoom().messages[data["newMessage"]["id"]].show()
         }
     }
     if (data["updateMessage"]) {
         const message_data = data["updateMessage"]
-        createMessageDiv(message_data)
-    }
-    if (data["allUsers"]) {
-        DATA.allUsers = data['allUsers']
+        console.log("UPDATE MESSAGE NEEDS REWORK")
+        // createMessageDiv(message_data)
     }
     if (data["reload"]) {
         reload(data["reload"])
     }
 }
 
-function showRooms() {
-    roomsDiv.replaceChildren();
-    for (const room in DATA.rooms) {
-        const room_data = DATA.rooms[room]
-        createRoomDiv(room_data)
-    }
-}
-
-function createRoomDiv(room) {
-    let div = document.createElement("div");
-    div.className = "room"
-    div.onclick = function () {
-        chooseRoom(room.id)
-    }
-    div.id = "room_" + room.id
-    div.innerHTML = 'Room ' + room.id + ' ' + room.name;
-    roomsDiv.appendChild(div);
-}
-
-
-function createMessageDiv(message) {
-    let div = document.getElementById("message_" + message.id)
-    let isNew = false
-    if (div === null) {
-        isNew = true
-        div = document.createElement("div");
-    }
-    div.className = "message"
-    div.id = "message_" + message.id
-    const Author = DATA.allUsers.find((user) => user.id === message.author_id_id)
-    div.innerHTML = "<div class=\"message-author\">" + Author.username +
-        "</div><div class=\"message-body\">" + message.message + "</div>"
-    for (const file in message["media"]) {
-        const fileData = message["media"][file]
-        console.log(fileData)
-        const format = fileData['file'].split('.').pop()
-        console.log("format ", format)
-        const mediaHref = "http://" + window.location.host + "/media/" + fileData['file']
-        if (["mp4", "webm"].find(value => value === format)) {
-            div.innerHTML += "<div>" + "<video style='max-width: 400px' src=\'" + mediaHref + "\' controls/>" + "</div>"
-        } else if (["jpg", "jpeg", "png", "gif"].find(value => value === format)) {
-            div.innerHTML += "<div>" + "<img style='max-width: 400px' src=\'" + mediaHref + "\' alt=''/>" + "</div>"
-        } else if (["waw", "mp3"].find(value => value === format)) {
-            div.innerHTML += "<div>" + "<audio style='' src=\'" + mediaHref + "\' controls/>" + "</div>"
-        } else {
-            div.innerHTML +=
-                "<div style='min-height: 40px; margin: 5px 0;' class=\'flex-r a-c\'>"
-                + "<a style='max-width: 400px;' href=\'" + mediaHref + "\'> File: " + fileData["file_name"] + "</a>"
-                + "</div>"
-        }
-    }
-    if (isNew) {
-        messageDiv.appendChild(div);
-    }
-}
-
-function chooseRoom(id) {
-    if (DATA.currentRoom.id !== id) {
-        DATA.currentRoom.id = id
-        if (INPUT[DATA.currentRoom.id]) {
-            INPUT.textInputElement.value = INPUT[DATA.currentRoom.id]['text']
-        } else {
-            INPUT.textInputElement.value = ""
-        }
-        REQUESTS.requestRoomData()
-        REQUESTS.requestRoomMessages()
-        showRoomName()
-        fileInputWindow.openWindow()
-    }
-}
-
 function showRoomName() {
-    if (DATA.currentRoom.id !== null) {
-        DATA.currentRoom.name = DATA.rooms.find((room) => room.id === DATA.currentRoom.id).name
-        groupNameElement.innerHTML = DATA.currentRoom.name
+    console.log("current room", Data.currentRoomId)
+    if (Data.currentRoomId !== null) {
+        console.log("name", Data.getCurrentRoom().name)
+        groupNameElement.innerHTML = Data.getCurrentRoom().name
     } else {
         groupNameElement.innerHTML = ''
     }
 }
 
-function showMessages() {
-    // sortMessagesByTime(); Хз нужно ли это
-    messageDiv.replaceChildren();
-    for (const message in DATA.currentRoom.messages) {
-        const message_data = DATA.currentRoom.messages[message]
-        createMessageDiv(message_data)
+function wierdMessageDataParser(messageData) {
+    messageData = {
+        messageId: messageData["id"],
+        roomId: messageData["room_id"],
+        authorId: messageData["author_id_id"],
+        hasMedia: messageData["has_media"],
+        media: messageData["media"],
+        text: messageData["message"],
+        timestamp: messageData["timestamp"]
     }
-    messageDiv.scrollTop = messageDiv.scrollHeight;
+    return messageData
 }
 
 groupDataDisplay.addEventListener('click', (event) => {
-    if (DATA.currentRoom.id === null) return null
+    if (Data.currentRoomId === null) return null
     GroupMenuWindow.openWindow()
 })
 
@@ -760,7 +665,7 @@ const GroupMenuWindow = {
     menuGroupName: document.getElementById('GroupMenuWindowName'),
     openWindow() {
         this.groupMenuWindow.classList.add('active')
-        this.menuGroupName.innerHTML = DATA.currentRoom.name
+        this.menuGroupName.innerHTML = Data.getCurrentRoom().name
         overlay.classList.add('active')
     },
     closeWindow() {
@@ -803,14 +708,13 @@ const leaveConfirmWindow = {
     header: document.getElementById('leaveConfirmHeader'),
     window: document.getElementById("leaveConfirm"),
     openWindow() {
-        this.header.innerHTML = "<span>" + "Are you sure you want to leave " + DATA.currentRoom.name + "?</span>"
+        this.header.innerHTML = "<span>" + "Are you sure you want to leave " + Data.currentRoomId + "?</span>"
         this.open = true
         overlay.classList.add('active')
         this.window.classList.add('active')
     },
     leaveRoom() {
         REQUESTS.requestLeaveRoom()
-        DATA.clearCurrentRoomData()
         this.closeWindow()
         overlay.classList.remove('active')
         showRoomName()
@@ -832,7 +736,7 @@ const deleteConfirmWindow = {
     header: document.getElementById("deleteConfirmHeader"),
     window: document.getElementById("deleteConfirm"),
     openWindow() {
-        this.header.innerHTML = "<span>" + "Are you sure you want to delete " + DATA.currentRoom.name + "?</span>" +
+        this.header.innerHTML = "<span>" + "Are you sure you want to delete " + Data.currentRoomId + "?</span>" +
             "<span>Room data will not be recoverable.</span>"
         this.open = true
         overlay.classList.add('active')
@@ -840,7 +744,6 @@ const deleteConfirmWindow = {
     },
     deleteRoom() {
         REQUESTS.requestDeleteRoom()
-        DATA.clearCurrentRoomData()
         this.closeWindow()
         overlay.classList.remove('active')
         showRoomName()
@@ -865,7 +768,7 @@ const RoomRenameWindow = {
     renameRoomInput: document.getElementById('renameRoomInput'),
     saveButton: document.getElementById('renameRoomInput'),
     openWindow() {
-        this.renameWindowOldName.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + 'Rename ' + DATA.currentRoom.name + "</span>"
+        this.renameWindowOldName.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + 'Rename ' + Data.getCurrentRoom().name + "</span>"
         const button = this.renameWindowOldName.getElementsByTagName('button')
         button.item(0).onclick = function () {
             RoomRenameWindow.closeWindow()
@@ -877,8 +780,8 @@ const RoomRenameWindow = {
     },
     saveNewName() {
         if (this.renameRoomInput.value) {
-            if (DATA.currentRoom.id) {
-                REQUESTS.requestRenameRoom(DATA.currentRoom.id, this.renameRoomInput.value)
+            if (Data.currentRoomId) {
+                REQUESTS.requestRenameRoom(Data.currentRoomId, this.renameRoomInput.value)
                 RoomRenameWindow.renameRoomInput.value = ''
             }
             this.closeWindow()
@@ -932,13 +835,13 @@ const setRulesWindow = {
     openWindow() {
         this.open = true
         this.showRules()
-        if (!DATA.userIsOwner(DATA.userData.id)) {
+        if (!Data.getCurrentRoom().isOwner(Data.currentRoomId)) {
             this.setRulesWindowListAdmin.style.display = "none"
         } else {
             this.setRulesWindowListAdmin.style.display = "inherit"
         }
         this.window.classList.add("active")
-        this.header.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + 'Rules ' + DATA.currentRoom.name + "</span>"
+        this.header.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + 'Rules ' + Data.getCurrentRoom().name + "</span>"
         const button = this.header.getElementsByTagName('button')
         button.item(0).onclick = function () {
             setRulesWindow.closeWindow()
@@ -946,16 +849,16 @@ const setRulesWindow = {
         }
     },
     showRules() {
-        console.log("Rules", DATA.currentRoom.rules)
-        if ((DATA.currentRoom.rules !== "none") && (DATA.currentRoom.rules !== undefined)) {
+        console.log("Rules", Data.getCurrentRoom().rules)
+        if ((Data.getCurrentRoom().rules !== "none") && (Data.getCurrentRoom().rules !== undefined)) {
 
-            this.rules.ruleUserCanPost.value = DATA.currentRoom.rules.ruleUserCanPost
-            this.rules.ruleUserCanRenameRoom.value = DATA.currentRoom.rules.ruleUserCanRenameRoom
-            this.rules.ruleUserCanInvite.value = DATA.currentRoom.rules.ruleUserCanInvite
-            this.rules.ruleUserCanKick.value = DATA.currentRoom.rules.ruleUserCanKick
-            this.rules.ruleAdminCanAddAdmins.value = DATA.currentRoom.rules.ruleAdminCanAddAdmins
-            this.rules.ruleAdminCanRemoveAdmins.value = DATA.currentRoom.rules.ruleAdminCanRemoveAdmins
-            this.rules.ruleAdminCanRenameRoom.value = DATA.currentRoom.rules.ruleAdminCanRenameRoom
+            this.rules.ruleUserCanPost.value = Data.getCurrentRoom().rules.ruleUserCanPost
+            this.rules.ruleUserCanRenameRoom.value = Data.getCurrentRoom().rules.ruleUserCanRenameRoom
+            this.rules.ruleUserCanInvite.value = Data.getCurrentRoom().rules.ruleUserCanInvite
+            this.rules.ruleUserCanKick.value = Data.getCurrentRoom().rules.ruleUserCanKick
+            this.rules.ruleAdminCanAddAdmins.value = Data.getCurrentRoom().rules.ruleAdminCanAddAdmins
+            this.rules.ruleAdminCanRemoveAdmins.value = Data.getCurrentRoom().rules.ruleAdminCanRemoveAdmins
+            this.rules.ruleAdminCanRenameRoom.value = Data.getCurrentRoom().rules.ruleAdminCanRenameRoom
 
             this.rules.ruleUserCanPost.element.checked = this.rules.ruleUserCanPost.value
             this.rules.ruleUserCanRenameRoom.element.checked = this.rules.ruleUserCanRenameRoom.value
@@ -983,7 +886,7 @@ const setRulesWindow = {
             this.rules.ruleAdminCanRemoveAdmins.element.checked = this.rules.ruleAdminCanRemoveAdmins.value
             this.rules.ruleAdminCanRenameRoom.element.checked = this.rules.ruleAdminCanRenameRoom.value
         }
-        DATA.currentRoom.rules = {
+        Data.getCurrentRoom().rules = {
             ruleUserCanPost: this.rules.ruleUserCanPost.value,
             ruleUserCanRenameRoom: this.rules.ruleUserCanRenameRoom.value,
             ruleUserCanInvite: this.rules.ruleUserCanInvite.value,
@@ -996,8 +899,8 @@ const setRulesWindow = {
     },
     showUsers() {
         this.usersListDisplay.replaceChildren()
-        for (const user in DATA.currentRoom.users) {
-            const userData = DATA.currentRoom.users[user]
+        for (const userId in Data.getCurrentRoom().users) {
+            const userData = Data.getCurrentRoom().users[userId]
 
             console.log(userData)
             this.createUserDiv(userData)
@@ -1009,43 +912,43 @@ const setRulesWindow = {
         div.className = "user"
         div.id = "user_" + userData.id
         const Name = userData.username
-        if (DATA.userIsOwner(DATA.userData.id)) {
+        if (Data.getCurrentRoom().isOwner(Data.currentRoomId)) {
             console.log("You are an owner")
-            if (DATA.userIsOwner(userData.id)) {
+            if (Data.getCurrentRoom().isOwner(userData.id)) {
                 div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Owner" + "</div>"
-            } else if (DATA.userIsAdmin(userData.id)) {
+            } else if (Data.getCurrentRoom().isAdmin(userData.id)) {
                 div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>remove admin</button>" + "</div>"
                 const button = div.getElementsByTagName("button")
                 button.item(0).onclick = function () {
-                    REQUESTS.requestRemoveAdmin(userData.id, DATA.currentRoom.id)
+                    REQUESTS.requestRemoveAdmin(userData.id, Data.currentRoomId)
                 }
             } else {
                 div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>make admin</button>" + "</div>"
                 const button = div.getElementsByTagName("button")
                 button.item(0).onclick = function () {
-                    REQUESTS.requestMakeAdmin(userData.id, DATA.currentRoom.id)
+                    REQUESTS.requestMakeAdmin(userData.id, Data.currentRoomId)
                 }
             }
-        } else if (DATA.userIsAdmin(DATA.userData.id)) {
+        } else if (Data.getCurrentRoom().isAdmin(Data.user.id)) {
             console.log("You are an admin")
-            if (DATA.userIsOwner(userData.id)) {
+            if (Data.getCurrentRoom().isOwner(userData.id)) {
                 div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Owner" + "</div>"
-            } else if (DATA.userIsAdmin(userData.id)) {
-                if (DATA.currentRoom.rules.ruleAdminCanRemoveAdmins) {
+            } else if (Data.getCurrentRoom().isAdmin(userData.id)) {
+                if (Data.getCurrentRoom().rules.ruleAdminCanRemoveAdmins) {
                     div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>remove admin</button>" + "</div>"
                     const button = div.getElementsByTagName("button")
                     button.item(0).onclick = function () {
-                        REQUESTS.requestRemoveAdmin(userData.id, DATA.currentRoom.id)
+                        REQUESTS.requestRemoveAdmin(userData.id, Data.currentRoomId)
                     }
                 } else {
                     div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Admin" + "</div>"
                 }
             } else {
-                if (DATA.currentRoom.rules.ruleAdminCanAddAdmins) {
+                if (Data.getCurrentRoom().rules.ruleAdminCanAddAdmins) {
                     div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>make admin</button>" + "</div>"
                     const button = div.getElementsByTagName("button")
                     button.item(0).onclick = function () {
-                        REQUESTS.requestMakeAdmin(userData.id, DATA.currentRoom.id)
+                        REQUESTS.requestMakeAdmin(userData.id, Data.currentRoomId)
                     }
                 } else {
                     div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "User" + "</div>"
@@ -1053,9 +956,9 @@ const setRulesWindow = {
             }
         } else {
             console.log("You are a user")
-            if (DATA.userIsOwner(userData.id)) {
+            if (Data.getCurrentRoom().isOwner(userData.id)) {
                 div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Owner" + "</div>"
-            } else if (DATA.userIsAdmin(userData.id)) {
+            } else if (Data.getCurrentRoom().isAdmin(userData.id)) {
                 div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Admin" + "</div>"
             } else {
                 div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "User" + "</div>"
@@ -1072,7 +975,7 @@ const setRulesWindow = {
         this.rules.ruleAdminCanRemoveAdmins.value = this.rules.ruleAdminCanRemoveAdmins.element.checked
         this.rules.ruleAdminCanRenameRoom.value = this.rules.ruleAdminCanRenameRoom.element.checked
 
-        DATA.currentRoom.rules = {
+        Data.getCurrentRoom().rules = {
             ruleUserCanPost: this.rules.ruleUserCanPost.value,
             ruleUserCanRenameRoom: this.rules.ruleUserCanRenameRoom.value,
             ruleUserCanInvite: this.rules.ruleUserCanInvite.value,
@@ -1081,7 +984,7 @@ const setRulesWindow = {
             ruleAdminCanRemoveAdmins: this.rules.ruleAdminCanRemoveAdmins.value,
             ruleAdminCanRenameRoom: this.rules.ruleAdminCanRenameRoom.value,
         }
-        console.log(DATA.currentRoom.rules)
+        console.log(Data.getCurrentRoom().rules)
         REQUESTS.requestSaveRoomRules()
     },
     closeWindow() {
@@ -1097,7 +1000,7 @@ const inviteUsersWindow = {
     inviteToRoomName: document.getElementById("inviteToRoomName"),
     inviteUsersDiv: document.getElementById("inviteUsersDiv"),
     openWindow() {
-        this.inviteToRoomName.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + "Invite to " + DATA.currentRoom.name + "</span>"
+        this.inviteToRoomName.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + "Invite to " + Data.getCurrentRoom().name + "</span>"
         const button = this.inviteToRoomName.getElementsByTagName('button')
         button.item(0).onclick = function () {
             inviteUsersWindow.closeWindow()
@@ -1114,9 +1017,9 @@ const inviteUsersWindow = {
     },
     showUsersToInvite() {
         this.inviteUsersDiv.replaceChildren()
-        for (const user in DATA.allUsers) {
-            const userData = DATA.allUsers[user]
-            if ((DATA.currentRoom.users.find((user) => user.id === userData.id) === undefined)) {
+        for (const userId in Data.allUsers) {
+            const userData = Data.allUsers[userId]
+            if ((Data.getCurrentRoom().users.find((user) => user.id === userData.id) === undefined)) {
                 console.log(userData)
                 this.createUserDiv(userData)
             }
@@ -1130,7 +1033,7 @@ const inviteUsersWindow = {
         div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button id=\"inviteButton\">Invite</button>" + "</div>"
         const button = div.getElementsByTagName("button")
         button.item(0).onclick = function () {
-            REQUESTS.requestInviteUser(user.id, DATA.currentRoom.id)
+            REQUESTS.requestInviteUser(user.id, Data.currentRoomId)
         }
         this.inviteUsersDiv.appendChild(div);
     },
@@ -1144,7 +1047,7 @@ const kickUserWindow = {
     kickWindowUsers: document.getElementById("kickWindowUsers"),
     openWindow() {
         console.log("kickOpens")
-        this.kickWindowHeader.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + "Kick from " + DATA.currentRoom.name + "</span>"
+        this.kickWindowHeader.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + "Kick from " + Data.getCurrentRoom().name + "</span>"
         const button = this.kickWindowHeader.getElementsByTagName('button')
         button.item(0).onclick = function () {
             kickUserWindow.closeWindow()
@@ -1161,9 +1064,9 @@ const kickUserWindow = {
     },
     showUsersToKick() {
         this.kickWindowUsers.replaceChildren()
-        for (const user in DATA.allUsers) {
-            const userData = DATA.allUsers[user]
-            if ((DATA.currentRoom.users.find((user) => user.id === userData.id) !== undefined) && (DATA.allUsers[user].id !== DATA.userData.id)) {
+        for (const user in Data.allUsers) {
+            const userData = Data.allUsers[user]
+            if ((Data.getCurrentRoom().users.find((user) => user.id === userData.id) !== undefined) && (Data.allUsers[user].id !== Data.user.id)) {
                 console.log(userData)
                 this.createUserDiv(userData)
             }
@@ -1177,7 +1080,7 @@ const kickUserWindow = {
         div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>Kick</button>" + "</div>"
         const button = div.getElementsByTagName("button")
         button.item(0).onclick = function () {
-            REQUESTS.requestKickUser(user.id, DATA.currentRoom.id)
+            REQUESTS.requestKickUser(user.id, Data.currentRoomId)
         }
         this.kickWindowUsers.appendChild(div);
     },
@@ -1208,9 +1111,9 @@ const newRoomWindow = {
     },
     showUsers() {
         this.users.replaceChildren()
-        for (const user in DATA.allUsers) {
-            const userData = DATA.allUsers[user]
-            if ((DATA.allUsers[user].id !== DATA.userData.id)) {
+        for (const userId in Data.allUsers) {
+            const userData = Data.allUsers[userId]
+            if ((Data.allUsers[userId].id !== Data.user.id)) {
                 console.log(userData)
                 this.createUserDiv(userData)
             }

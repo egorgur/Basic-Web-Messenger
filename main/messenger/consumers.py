@@ -64,7 +64,7 @@ class Consumer(AsyncConsumer):
                     "type": "websocket.send",
                     "text": answer
                 })
-            case "groups":
+            case "rooms":
                 rooms = {
                     'rooms': await database_sync_to_async(list)
                     (await database_sync_to_async(Room.objects.filter(users=self.user).values)())
@@ -76,10 +76,12 @@ class Consumer(AsyncConsumer):
                     "text": json_rooms
                 })
             case "room_messages":
+                messages_request_count = received["messages_request_count"]
                 room_messages = await database_sync_to_async(list)(
                     await database_sync_to_async(
-                        Message.objects.filter(room_id=received["room_id"]).values)())
-
+                        Message.objects.filter(room_id=received["room_id"]).order_by("-timestamp")
+                        [10 * messages_request_count:10 * (messages_request_count + 1)].values)())
+                #        portion in 10 messages
                 for i in range(len(room_messages)):
                     if room_messages[i]["has_media"]:
                         await database_sync_to_async(print)(
@@ -101,13 +103,15 @@ class Consumer(AsyncConsumer):
             case "group_data":
                 room = await database_sync_to_async(Room.objects.get)(id=received["room_id"])
                 room_administration = await database_sync_to_async(RoomAdmin.objects.get)(room_id=received["room_id"])
-
+                room_name = room.name
                 room_owner_id = room_administration.owner
                 room_admins = await database_sync_to_async(list)(
                     room_administration.admins.all().values('id', 'username'))
                 room_users = await database_sync_to_async(list)(room.users.all().values('id', 'username'))
                 room_rules = room.rules
                 room_data = {
+                    "roomId": received["room_id"],
+                    "roomName": room_name,
                     "roomRules": room_rules,
                     "users": room_users,
                     "ownerId": room_owner_id,
@@ -121,15 +125,6 @@ class Consumer(AsyncConsumer):
             case "send_message":
                 print('answered: save_message')
                 await self.message_handler(received)
-                # await self.send({
-                #     "type": "websocket.send",
-                #     "text": json.dumps(received)
-                # })
-            # case "update_message":
-            #     message_id = received["message_id"]
-            #     room_id = received["room_id"]
-            #     await self.group_send(received)
-            #     ...
             case "group_send":
                 group_answer = {
                     "type": "group_send",
@@ -404,7 +399,7 @@ class Consumer(AsyncConsumer):
                                 )
                                 channel_message = {
                                     "type": 'websocket.receive',
-                                    "text": json.dumps({"request": "groups"})
+                                    "text": json.dumps({"request": "rooms"})
                                 }
                                 await self.channel_layer.send(channel=channel_name, message=channel_message)
                             except:
@@ -463,7 +458,7 @@ class Consumer(AsyncConsumer):
                             )
                             channel_message = {
                                 "type": 'websocket.receive',
-                                "text": json.dumps({"request": "groups"})
+                                "text": json.dumps({"request": "rooms"})
                             }
                             await self.channel_layer.send(channel=channel_name, message=channel_message)
                         except:
@@ -546,15 +541,16 @@ class Consumer(AsyncConsumer):
                         "text": json.dumps(answer)
                     })
             case "new_room":
-                if received["name"] and received["creator"]:
+                if received["name"]:
                     room = await database_sync_to_async(Room.objects.create)(
-                        name=received["name"]
+                        name=received["name"],
+                        rools="none",
                     )
-                    admin = await database_sync_to_async(User.objects.get)(pk=received["creator"])
+                    admin = await database_sync_to_async(User.objects.get)(pk=self.user.id)
                     await database_sync_to_async(room.users.add)(admin)
                     room_admins = await database_sync_to_async(RoomAdmin.objects.create)(
                         room_id=room,
-                        owner=received["creator"],
+                        owner=self.user.id,
                     )
                     await database_sync_to_async(room_admins.admins.add)(admin)
                     for user_data in received['users']:
