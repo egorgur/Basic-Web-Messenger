@@ -11,20 +11,16 @@
     <title>Document</title>
 </head>
 <body>
-<header></header>
+<header>
+    <div class="logo"><a href="">Messenger</a></div>
+    <div class="spacer"></div>
+</header>
 <div class="main__wrapper">
-    <div class="login__window">
-         <text>/////////////////////////////////////////</text>
-        <div class="window__container">
-            <text>LOGIN</text>
-            <form action="#">
-                <label>|<input type="text" placeholder="username" id="input_name"></label>
-                <label>|<input type="password" placeholder="password" id="input_password"></label>
-                <label id="info"></label>
-            </form>
-        </div>
-         <text>/////////////////////////////////////////</text>
-    </div>
+   <div class="container">
+       <div class="login-block">
+           <div class="container"></div>
+       </div>
+   </div>
 </div>
 <footer></footer>
 <script> const CSRF_TOKEN = '{{ csrf_token }}';</script>

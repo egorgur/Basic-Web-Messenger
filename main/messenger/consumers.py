@@ -515,26 +515,37 @@ class Consumer(AsyncConsumer):
                         "text": json.dumps(answer)
                     })
             case "delete_room":
-                # user_is_admin() admin rights check is not implemented yet
-                try:
-                    room = await database_sync_to_async(Room.objects.get)(pk=received['room_id'])
-                    if await database_sync_to_async(room.users.filter(id=self.user.id).exists)():
-                        await database_sync_to_async(room.delete)()
-                        answer = {
-                            "success": True,
-                            "reload": "rooms",
-                        }
-                    else:
+                room_administration = await database_sync_to_async(RoomAdmin.objects.get)(room_id=received["room_id"])
+                if room_administration.owner == self.user.id:
+                    try:
+                        room = await database_sync_to_async(Room.objects.get)(pk=received['room_id'])
+                        if await database_sync_to_async(room.users.filter(id=self.user.id).exists)():
+                            await database_sync_to_async(room.delete)()
+                            answer = {
+                                "success": True,
+                                "reload": "rooms",
+                            }
+                        else:
+                            answer = {
+                                "error": True,
+                                "data": "you are not in the room",
+                            }
+                    except Exception as e:
                         answer = {
                             "error": True,
-                            "data": "you are not in the room",
+                            "data": repr(e),
                         }
-                except Exception as e:
+                    finally:
+                        print('answered: ', json.dumps(answer))
+                        await self.send({
+                            "type": "websocket.send",
+                            "text": json.dumps(answer)
+                        })
+                else:
                     answer = {
                         "error": True,
-                        "data": repr(e),
+                        "data": "you are not an owner of this room",
                     }
-                finally:
                     print('answered: ', json.dumps(answer))
                     await self.send({
                         "type": "websocket.send",
@@ -544,7 +555,7 @@ class Consumer(AsyncConsumer):
                 if received["name"]:
                     room = await database_sync_to_async(Room.objects.create)(
                         name=received["name"],
-                        rools="none",
+                        rules="none",
                     )
                     admin = await database_sync_to_async(User.objects.get)(pk=self.user.id)
                     await database_sync_to_async(room.users.add)(admin)

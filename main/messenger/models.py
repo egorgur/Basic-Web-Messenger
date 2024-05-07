@@ -2,6 +2,11 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+class UserSettings(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    avatar = models.FileField(null=True)
+    contacts = models.CharField(default="{}")
+
 class Room(models.Model):
     users = models.ManyToManyField(User)
     name = models.CharField(max_length=200, default="none")

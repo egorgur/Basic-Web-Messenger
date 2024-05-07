@@ -1,6 +1,5 @@
 const baseURL = window.location.protocol + "//" + window.location.host + "/"
 console.log(baseURL)
-const bodyElement = document.getElementsByTagName('body')[0]
 const roomsDiv = document.getElementById('rooms')
 const messageDiv = document.getElementById('messages')
 const groupNameElement = document.getElementById('groupDataDisplay')
@@ -81,16 +80,14 @@ const Data = {
 
             reloadMessageDiv(messageData) {
                 const div = document.getElementById("message_" + messageData["messageId"])
-                const timestamp = messageData["timestamp"]
-                console.log("timestamp", timestamp)
                 const author = Data.allUsers[messageData.authorId]
                 div.innerHTML = "<div class=\"message-author\">" + author.name +
                     "</div><div class=\"message-body\">" + messageData.text + "</div>"
                 for (const file in messageData["media"]) {
                     const fileData = messageData["media"][file]
-                    console.log(fileData)
+                    // console.log(fileData)
                     const format = fileData['file'].split('.').pop()
-                    console.log("format ", format)
+                    // console.log("format ", format)
                     const mediaHref = "http://" + window.location.host + "/media/" + fileData['file']
                     if (["mp4", "webm"].find(value => value === format)) {
                         div.innerHTML += "<div>" + "<video style='max-width: 400px' src=\'" + mediaHref + "\' controls/>" + "</div>"
@@ -111,16 +108,15 @@ const Data = {
                 const div = document.createElement("div");
                 div.className = "message"
                 div.style.order = messageData["order"]
-                const timestamp = messageData["timestamp"]
                 div.id = "message_" + messageData["messageId"]
                 const author = Data.allUsers[messageData.authorId]
                 div.innerHTML = "<div class=\"message-author\">" + author.username +
                     "</div><div class=\"message-body\">" + messageData.text + "</div>"
                 for (const file in messageData["media"]) {
                     const fileData = messageData["media"][file]
-                    console.log(fileData)
+                    // console.log(fileData)
                     const format = fileData['file'].split('.').pop()
-                    console.log("format ", format)
+                    // console.log("format ", format)
                     const mediaHref = "http://" + window.location.host + "/media/" + fileData['file']
                     if (["mp4", "webm"].find(value => value === format)) {
                         div.innerHTML += "<div>" + "<video style='max-width: 400px' src=\'" + mediaHref + "\' controls/>" + "</div>"
@@ -189,11 +185,13 @@ const Data = {
                         },
                         show() {
                             Data.rooms[roomId].calculateOrder()
-                            console.log("messageShow", this.messageId, this)
+                            messageData["order"] = this.order
+                            // console.log("messageShow", this.messageId, this)
                             if (this.element === null) {
-                                messageData["order"] = this.order
                                 Data.rooms[roomId].createMessageDiv(messageData)
                                 this.element = document.getElementById("message_" + this.messageId)
+                            } else {
+                                this.element.style.order = this.order
                             }
                         },
                         hide() {
@@ -215,11 +213,14 @@ const Data = {
                 Object.keys(this.messages).reverse().forEach((messageId) => {
                     this.messages[parseInt(messageId)].show()
                 })
-                messageDiv.scrollTop = messageDiv.scrollHeight;
+                if (this.scrollPosition !== null) {
+                    console.log("scrollTo",this.scrollPosition)
+                    messageDiv.scrollTo(0, this.scrollPosition)
+                }
             },
             hideMessages() {
                 Object.keys(this.messages).reverse().forEach((messageId) => {
-                    console.log("messageHide", messageId, this.messages[parseInt(messageId)])
+                    // console.log("messageHide", messageId, this.messages[parseInt(messageId)])
                     this.messages[parseInt(messageId)].hide()
                 })
             },
@@ -276,18 +277,32 @@ INPUT.textInputElement.addEventListener('keydown', function (e) {
         INPUT.textInputElement.value = ""
     }
 });
-messageDiv.addEventListener("scroll", getScrollPosition)
+messageDiv.addEventListener("scroll", function () {
+    debounce(getScrollPosition, 100)
+})
 
+
+const lastToScrollElement = document.getElementById("lastToScrollElement")
+
+function debounce(method, delay) {
+    clearTimeout(method._tId);
+    method._tId= setTimeout(function(){
+        method();
+    }, delay);
+}
 function getScrollPosition() {
-    let y = messageDiv.scrollTop
-    let height = messageDiv.scrollHeight
-    let test = messageDiv.clientHeight
-    console.log("y", y, "height", height, "clHeight", test); // scroll position from top
-
+    let y = -messageDiv.scrollTop
+    Data.getCurrentRoom().scrollPosition = -y
+    let offset = -lastToScrollElement.offsetTop
+    console.log("y", y, "pointerDivHeight", offset, "offset - y", offset-y); // scroll position from top
+    if (offset-y<100){
+        REQUESTS.requestRoomMessages(Data.getCurrentRoom().messagesRequestsCount)
+    }
 }
 
 function sendMessage() {
     if (Data.currentRoomId !== null) {
+        messageDiv.scrollTo(0,0)
         websocket.send(JSON.stringify({
             message: INPUT.textInputElement.value,
             room_id: Data.currentRoomId,
@@ -482,12 +497,26 @@ function reload(type) {
 function websocketDataHandler(data) {
     console.log('from-server:', data)
     if (data["rooms"]) {
+
         for (const key in data["rooms"]) {
             const roomData = data["rooms"][key]
-            Data.createRoomDiv(roomData)
-            Data.addRoom(roomData["id"])
-            Data.rooms[roomData["id"]].name = roomData["name"]
-            Data.rooms[roomData["id"]].rules = roomData["rules"]
+            if (Data.rooms[roomData["id"]]=== undefined) {
+                Data.createRoomDiv(roomData)
+                Data.addRoom(roomData["id"])
+                Data.rooms[roomData["id"]].name = roomData["name"]
+                Data.rooms[roomData["id"]].rules = roomData["rules"]
+            } else {
+                Data.rooms[roomData["id"]].name = roomData["name"]
+                Data.rooms[roomData["id"]].rules = roomData["rules"]
+            }
+        }
+        for (const roomId in Data.rooms){
+            let deleteFlag = true
+            console.log("find",data["rooms"].find((room)=>{console.log("room.id",room.id,"roomId",roomId);return room.id===parseInt(roomId)}))
+            if (data["rooms"].find((room)=>{console.log(data["rooms"],room);return room.id===parseInt(roomId)})!==undefined){
+                deleteFlag=false
+            }
+            if (deleteFlag){Data.deleteRoom(roomId)}
         }
     }
     if (data["allUsers"]) {
@@ -562,6 +591,11 @@ function websocketDataHandler(data) {
             } else {
                 setRulesWindow.groupWindowButton.style.display = "inherit"
             }
+            if (!Data.getCurrentRoom().isOwner(Data.user.id)){
+                deleteConfirmWindow.groupWindowButton.style.display = "none"
+            } else {
+                deleteConfirmWindow.groupWindowButton.style.display = "inherit"
+            }
         } else {
             console.log("input activated")
             INPUT.textInputElement.removeAttribute("disabled")
@@ -573,6 +607,7 @@ function websocketDataHandler(data) {
         }
     }
     if (data["users"]) {
+        Data.getCurrentRoom().users = {}
         for (const key in data["users"]) {
             const userId = data["users"][key]["id"]
             Data.getCurrentRoom().users[userId] = data["users"][key]
@@ -589,6 +624,9 @@ function websocketDataHandler(data) {
             Data.getCurrentRoom().insertMessage(data["messages"][key])
         }
         Data.getCurrentRoom().showMessages()
+        if (data["messages"].length>9) {
+            Data.getCurrentRoom().messagesRequestsCount++
+        }
     }
     if (data["user"]) {
         Data.user = data["user"]
@@ -717,8 +755,8 @@ const leaveConfirmWindow = {
         REQUESTS.requestLeaveRoom()
         this.closeWindow()
         overlay.classList.remove('active')
+        Data.deleteRoom(Data.currentRoomId)
         showRoomName()
-        showMessages()
     },
     cancel() {
         this.closeWindow()
@@ -733,6 +771,7 @@ const leaveConfirmWindow = {
 
 const deleteConfirmWindow = {
     open: false,
+    groupWindowButton: document.getElementById("groupDelete"),
     header: document.getElementById("deleteConfirmHeader"),
     window: document.getElementById("deleteConfirm"),
     openWindow() {
@@ -746,8 +785,8 @@ const deleteConfirmWindow = {
         REQUESTS.requestDeleteRoom()
         this.closeWindow()
         overlay.classList.remove('active')
+        Data.deleteRoom(Data.currentRoomId)
         showRoomName()
-        showMessages()
     },
     cancel() {
         this.closeWindow()
@@ -1019,7 +1058,7 @@ const inviteUsersWindow = {
         this.inviteUsersDiv.replaceChildren()
         for (const userId in Data.allUsers) {
             const userData = Data.allUsers[userId]
-            if ((Data.getCurrentRoom().users.find((user) => user.id === userData.id) === undefined)) {
+            if ((Data.getCurrentRoom().users[userData.id]=== undefined)&&(userData.id !== Data.user.id)) {
                 console.log(userData)
                 this.createUserDiv(userData)
             }
@@ -1066,7 +1105,7 @@ const kickUserWindow = {
         this.kickWindowUsers.replaceChildren()
         for (const user in Data.allUsers) {
             const userData = Data.allUsers[user]
-            if ((Data.getCurrentRoom().users.find((user) => user.id === userData.id) !== undefined) && (Data.allUsers[user].id !== Data.user.id)) {
+            if ((Data.getCurrentRoom().users[userData.id]!== undefined)&&(userData.id !== Data.user.id)) {
                 console.log(userData)
                 this.createUserDiv(userData)
             }
