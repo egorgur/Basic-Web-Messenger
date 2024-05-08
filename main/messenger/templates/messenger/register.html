@@ -6,28 +6,38 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="{% static 'messenger/css/styleNull.css' %}">
-    <link rel="stylesheet" href="{% static 'messenger/css/registration.css' %}">
+    <link rel="stylesheet" href="{% static 'messenger/css/styleNull.css' %}?{{ csrf_token }}">
+    <link rel="stylesheet" href="{% static 'messenger/css/registration.css' %}?{{ csrf_token }}">
     <title>Document</title>
 </head>
 <body>
-<header></header>
-<div class="main__wrapper">
-    <div class="registration__window">
-        <text>//////////////////////////////////////////</text>
-        <div class="window__container">
-            <text>REGISTRATION</text>
-            <form action="#">
-                <label>|<input type="text" placeholder="username" id="input_name"></label>
-                <label>|<input type="password" placeholder="password" id="input_password1"></label>
-                <label>|<input type="password" placeholder="repeat_password" id="input_password2"></label>
-                <label id="password_warning"></label>
-            </form>
+<header>
+    <div class="logo header__logo"><a href="">Messenger</a></div>
+    <div class="spacer header__spacer"></div>
+</header>
+<main>
+    <div class="container">
+        <div class="registration">
+            <div class="header registration__header">Registration</div>
+            <div class="text-input registration__text-input">
+                <label for="username"></label><input type="text" id="username" placeholder="Enter your username">
+            </div>
+            <div class="text-input registration__text-input">
+                <label for="password1"></label><input type="password" id="password1" placeholder="Enter your password">
+            </div>
+            <div class="text-input registration__text-input">
+                <label for="password2"></label><input type="password" id="password2" placeholder="Enter your password again">
+            </div>
+            <div class="btn registration__btn" onclick="sendRegisteredUser()">Authorize</div>
+            <div class="error-popup registration__error-popup" id="error-popup">test error</div>
+            <a onclick="" id="loginRedirect">I do have an account</a>
         </div>
-        <text>//////////////////////////////////////////</text>
     </div>
-</div>
-<footer></footer>
+</main>
+<footer>
+    <div class="github"><a href="https://github.com/egorgur">github/egorgur</a></div>
+    <div class="telegram"><a>telegram/@egorgur</a></div>
+</footer>
 <script> const CSRF_TOKEN = '{{ csrf_token }}';</script>
 <script src="{% static 'messenger/js/fetch.js' %}?{{ csrf_token }}"></script>
 <script src="{% static 'messenger/js/registration.js' %}?{{ csrf_token }}"></script>

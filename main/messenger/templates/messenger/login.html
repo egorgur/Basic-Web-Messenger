@@ -6,8 +6,8 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="{% static 'messenger/css/styleNull.css' %}">
-    <link rel="stylesheet" href="{% static 'messenger/css/login.css' %}">
+    <link rel="stylesheet" href="{% static 'messenger/css/styleNull.css' %}?{{ csrf_token }}">
+    <link rel="stylesheet" href="{% static 'messenger/css/login.css' %}?{{ csrf_token }}">
     <title>Document</title>
 </head>
 <body>
@@ -15,14 +15,26 @@
     <div class="logo"><a href="">Messenger</a></div>
     <div class="spacer"></div>
 </header>
-<div class="main__wrapper">
-   <div class="container">
-       <div class="login-block">
-           <div class="container"></div>
-       </div>
-   </div>
+<div class="main-wrapper">
+    <div class="container">
+        <div class="login">
+            <div class="header">Login</div>
+            <div class="text-input">
+                <label for="login"></label><input type="text" id="login" placeholder="Enter your username">
+            </div>
+            <div class="text-input">
+                <label for="password"></label><input type="password" id="password" placeholder="Enter your password">
+            </div>
+            <div class="btn" onclick="sendLoginUser()">Authorize</div>
+            <div id="error-popup">test error</div>
+            <a onclick="" id="registrationRedirect">I do not have an account</a>
+        </div>
+    </div>
 </div>
-<footer></footer>
+<footer>
+    <div class="github"><a href="https://github.com/egorgur">github/egorgur</a></div>
+    <div class="telegram"><a>telegram/@egorgur</a></div>
+</footer>
 <script> const CSRF_TOKEN = '{{ csrf_token }}';</script>
 <script src="{% static 'messenger/js/fetch.js' %}?{{ csrf_token }}"></script>
 <script src="{% static 'messenger/js/login.js' %}?{{ csrf_token }}"></script>

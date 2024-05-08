@@ -96,16 +96,17 @@ def media_view(request, path):
     else:
         HttpResponse("restricted access")
 
+
 def files(request):
     if request.method == "POST":
         try:
             uploaded_file = request.FILES['file']
             message_id = request.POST['messageId']
             room_id = request.POST['roomId']
-            print("message_id ", message_id)
-            print("room_id ", room_id)
-            print("File_name", uploaded_file.name)
-            print("File_size", uploaded_file.size)
+            # print("message_id ", message_id)
+            # print("room_id ", room_id)
+            # print("File_name", uploaded_file.name)
+            # print("File_size", uploaded_file.size)
             fs = FileSystemStorage()
             fs.save(uploaded_file.name, uploaded_file)
             file = Media.objects.create(
@@ -189,7 +190,7 @@ def login_management(request, data):
         answer = AnswerData(
             answer_type="bad",
             main_data={},
-            comment="emptyField"
+            comment="Empty fields"
         )
         answer = dataclasses.asdict(answer)
     else:
@@ -207,7 +208,7 @@ def login_management(request, data):
             answer = AnswerData(
                 answer_type="bad",
                 main_data={},
-                comment="wrongUsernameOrPassword"
+                comment="Wrong username or password"
             )
             answer = dataclasses.asdict(answer)
     return JsonResponse(answer)
@@ -233,7 +234,7 @@ def registration_management(data):
         answer = AnswerData(
             answer_type="bad",
             main_data={},
-            comment="nameIsOccupied"
+            comment="This username is occupied"
         )
         answer = dataclasses.asdict(answer)
         return JsonResponse(answer)
@@ -268,12 +269,6 @@ def new_user_adding(data):
     )
 
 
-# answer = AnswerData(
-#             answer_type="",
-#             main_data={},
-#             comment="",
-#         )
-#         answer = dataclasses.asdict(answer)
 @dataclass
 class AnswerData:
     answer_type: str
