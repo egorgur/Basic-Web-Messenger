@@ -18,17 +18,41 @@
 <main>
     <div class="account">
         <div class="header account__header">Account</div>
-        <div class="account__avatar">pic</div>
-        <div class="text-input account__text-input">Name:</div>
-        <div class="account__change-password">Password:</div>
-        <div class="btn account__save-account-btn">Save</div>
+        <div class="account__avatar">
+            {% if has_avatar %}
+                <img src="http://{{ request.get_host }}{{ avatar_path }}"
+                     alt="" width="180px" height="180px" id="avatarImage">
+            {% else %}
+                <img src="{% static "messenger/img/empty-avatar.svg" %}"
+                     alt="" width="180px" height="180px" id="avatarImage">
+            {% endif %}
+
+            <label class="account__input-img" for="avatarInput">set photo</label>
+            <input type="file" accept="image/*" id="avatarInput">
+        </div>
+        <div class="text-input account__text-input">
+            <label for="username">Name: </label>
+            <div class="spacer"></div>
+            <input type="text" id="username" value="{{ username }}">
+        </div>
+        <div class="account__change-password">
+            Password:
+            <div class="spacer"></div>
+            <button class="btn account__change-password-btn" onclick="changePassRedirect()">change password</button>
+        </div>
+        <div class="btn account__save-account-btn" onclick="sendAccountData()">Save</div>
+        <div class="error-popup account__error-popup" id="error-popup"></div>
+        <div class="btn account__leave-account-btn" onclick="leaveAccount()">Leave</div>
     </div>
 </main>
 <footer>
-     <div class="github"><a href="https://github.com/egorgur">github/egorgur</a></div>
+    <div class="github"><a href="https://github.com/egorgur">github/egorgur</a></div>
     <div class="telegram"><a>telegram/@egorgur</a></div>
 </footer>
-<script> const CSRF_TOKEN = '{{ csrf_token }}';</script>
+<script> 
+    const CSRF_TOKEN = '{{ csrf_token }}';
+    const emptyAvatarUrl = '{% static "messenger/img/empty-avatar.svg" %}';
+</script>
 <script src="{% static 'messenger/js/fetch.js' %}?{{ csrf_token }}"></script>
 <script src="{% static 'messenger/js/account.js' %}?{{ csrf_token }}"></script>
 </body>

@@ -2,11 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
-class UserSettings(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    avatar = models.FileField(null=True)
-    contacts = models.CharField(default="{}")
-
 class Room(models.Model):
     users = models.ManyToManyField(User)
     name = models.CharField(max_length=200, default="none")
@@ -37,7 +32,8 @@ class Message(models.Model):
 
 
 class Media(models.Model):
-    message_id = models.IntegerField(null=True)
+    is_message_media = models.BooleanField()
+    message_id = models.IntegerField(null=True, blank=True)
     file_name = models.CharField(max_length=100)
     file = models.FileField()
 
@@ -46,5 +42,15 @@ class Media(models.Model):
 
     def delete(self, *args, **kwargs):
         self.file.delete()
-        super().delete(*args,**kwargs)
+        super().delete(*args, **kwargs)
+
+
+class UserSettings(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    avatar = models.ForeignKey(Media, on_delete=models.SET_NULL, null=True, blank=True, default=None)
+    contacts = models.CharField(default="{}")
+
+    def __str__(self):
+        return "settings: " + self.user.username
+
 # Create your models here.

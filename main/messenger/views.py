@@ -3,7 +3,7 @@ import os.path
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.core.files.storage import FileSystemStorage
 
 from channels.layers import get_channel_layer
@@ -12,7 +12,7 @@ from asgiref.sync import async_to_sync
 
 from main import settings
 
-from .models import Media, Room, Message
+from .models import Media, Room, Message, UserSettings
 
 import dataclasses
 from dataclasses import dataclass
@@ -21,7 +21,7 @@ import json
 
 
 def entry(request):
-    if request.user.is_anonymous:
+    if request.user.is_anonymous or not request.user.is_authenticated:
         return HttpResponseRedirect("/messenger/login/")
     return render(
         request=request,
@@ -39,32 +39,63 @@ def login_view(request):
 
 
 def account(request):
-    if request.user.is_anonymous:
+    if request.user.is_anonymous or not request.user.is_authenticated:
         return HttpResponseRedirect("/messenger/login/")
     else:
         print(request.user.username)
+        user_settings = UserSettings.objects.get(user=request.user)
+        avatar = user_settings.avatar
+        has_avatar = True
+        if avatar is None:
+            has_avatar = False
+            avatar_path = ""
+        else:
+            avatar_path = settings.MEDIA_URL + avatar.file.name
         return render(
             request=request,
             template_name="messenger/account.html",
-            context={'username': request.user.username}
+            context={
+                'username': request.user.username,
+                "has_avatar": has_avatar,
+                "avatar_path": avatar_path
+            }
         )
 
 
+def logout_user(request):
+    if request.user.is_anonymous or not request.user.is_authenticated:
+        return HttpResponseRedirect("/messenger/login/")
+    else:
+        logout(request)
+        return HttpResponseRedirect("/messenger/login/")
+
+
 def change_password(request):
-    if request.user.is_anonymous:
+    if request.user.is_anonymous or not request.user.is_authenticated:
         return HttpResponseRedirect("/messenger/login/")
     return render(request=request, template_name="messenger/password.html")
 
 
-def save_name(request):
+def save_account(request):
     if request.method == "GET":
         return HttpResponseRedirect("/messenger")
     data = json.loads(request.body)
-    if len(User.objects.all().filter(username=data["name"])) != 0:
+    if data["name"] == request.user.username:
+        answer = {
+            "answer_type": "good",
+            "comment": None,
+        }
+        return JsonResponse(answer)
+    if data["name"] == "":
+        answer = {
+            "comment": "Account name cannot be empty",
+        }
+        return JsonResponse(answer)
+    elif len(User.objects.all().filter(username=data["name"])) != 0:
         answer = AnswerData(
             answer_type="bad",
             main_data=data,
-            comment="name is already taken",
+            comment="This user name is occupied",
         )
         answer = dataclasses.asdict(answer)
     else:
@@ -73,26 +104,31 @@ def save_name(request):
         answer = AnswerData(
             answer_type="good",
             main_data=data,
-            comment="name is changed",
+            comment="Name is changed",
         )
         answer = dataclasses.asdict(answer)
     return JsonResponse(answer)
 
 
 def media_view(request, path):
-    if request.user.is_anonymous:
+    if request.user.is_anonymous or not request.user.is_authenticated:
         return HttpResponse("restricted access")
     if request.method == "GET":
         media = Media.objects.get(file=path)
-        message_id = media.message_id
-        message = Message.objects.get(pk=message_id)
-        room = message.room_id
-        if room.users.filter(id=request.user.id).exists():
+        if media.is_message_media:
+            message_id = media.message_id
+            message = Message.objects.get(pk=message_id)
+            room = message.room_id
+            if room.users.filter(id=request.user.id).exists():
+                media_path = os.path.join(settings.MEDIA_ROOT, path)
+                with open(media_path, "rb") as file:
+                    return HttpResponse(file.read(), content_type="application/octet-stream")
+            else:
+                HttpResponse("restricted access")
+        else:
             media_path = os.path.join(settings.MEDIA_ROOT, path)
             with open(media_path, "rb") as file:
                 return HttpResponse(file.read(), content_type="application/octet-stream")
-        else:
-            HttpResponse("restricted access")
     else:
         HttpResponse("restricted access")
 
@@ -101,36 +137,60 @@ def files(request):
     if request.method == "POST":
         try:
             uploaded_file = request.FILES['file']
-            message_id = request.POST['messageId']
-            room_id = request.POST['roomId']
-            # print("message_id ", message_id)
-            # print("room_id ", room_id)
-            # print("File_name", uploaded_file.name)
-            # print("File_size", uploaded_file.size)
             fs = FileSystemStorage()
             fs.save(uploaded_file.name, uploaded_file)
-            file = Media.objects.create(
-                message_id=message_id,
-                file_name=uploaded_file.name,
-                file=uploaded_file
-            )
-            file.save()
-            answer = {
-                "files_system": "test",
-            }
-            room_name = "Room_group_" + str(room_id)
-            channel = get_channel_layer()
-            update_request = {
-                # "request": "update_message",
-                "message_id": message_id,
-                "room_id": room_id,
-            }
-            group_request = {
-                "type": "update_message_call",
-                "text": json.dumps(update_request),
-            }
-            async_to_sync(channel.group_send)(room_name, group_request)
-            print("channel", channel)
+            print("accImg","account_image" in request.POST)
+            print(request.POST)
+            if 'messageId' in request.POST:
+                message_id = request.POST['messageId']
+                room_id = request.POST['roomId']
+                file = Media.objects.create(
+                    is_message_media=True,
+                    message_id=message_id,
+                    file_name=uploaded_file.name,
+                    file=uploaded_file
+                )
+                file.save()
+                answer = {
+                    "files_system": "ok",
+                }
+                room_name = "Room_group_" + str(room_id)
+                channel = get_channel_layer()
+                update_request = {
+                    # "request": "update_message",
+                    "message_id": message_id,
+                    "room_id": room_id,
+                }
+                group_request = {
+                    "type": "update_message_call",
+                    "text": json.dumps(update_request),
+                }
+                async_to_sync(channel.group_send)(room_name, group_request)
+                print("channel", channel)
+            elif "account_avatar" in request.POST:
+                file = Media.objects.create(
+                    is_message_media=False,
+                    file_name=uploaded_file.name,
+                    file=uploaded_file
+                )
+                file.save()
+                user_settings = UserSettings.objects.get(user=request.user)
+                user_settings.avatar = file
+                user_settings.save()
+                print("userImage")
+                answer = {
+                    "files_system": "ok",
+                }
+            else:
+                file = Media.objects.create(
+                    is_message_media=False,
+                    file_name=uploaded_file.name,
+                    file=uploaded_file
+                )
+                file.save()
+                answer = {
+                    "files_system": "ok",
+                }
         except Exception as e:
             print("error", e)
             answer = {
@@ -263,10 +323,11 @@ def username_is_occupied(data) -> bool:
 
 
 def new_user_adding(data):
-    User.objects.create_user(
-        username=data["name"],
-        password=data["password"],
-    )
+    print("new user needs rework", data)
+    # User.objects.create_user(
+    #     username=data["name"],
+    #     password=data["password"],
+    # )
 
 
 @dataclass
