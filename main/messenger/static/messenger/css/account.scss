@@ -1,0 +1,142 @@
+$red: #ba4d34;
+$light-grey: #3c3c3c;
+$dark-grey: #1b1b1b;
+$black: #040404;
+$white: #cdcdcd;
+$text-white: #d4d4d4;
+$transition-duration: 0.3s;
+
+@import "mixins";
+
+
+* {
+  color: $text-white;
+  font-family: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+  font-feature-settings: normal;
+  font-variation-settings: normal;
+  font-size: 1em;
+  /*font-size: 15px;*/
+  overflow: hidden;
+}
+
+a {
+  color: $text-white;
+  text-decoration: underline $text-white;
+
+  &:hover {
+    color: white;
+    text-decoration: none;
+  }
+}
+
+.btn {
+  @include flex-row;
+  @include flex-center;
+  width: 120px;
+  height: 40px;
+
+  border: $light-grey 1px solid;
+  color: $text-white;
+  background: none;
+  transition: background-color $transition-duration,
+  color $transition-duration;
+
+  &:hover {
+    background-color: $white;
+    color: $black;
+  }
+}
+
+.text-input {
+  @include flex-row;
+  @include flex-center;
+
+  input {
+    width: 100%;
+    height: 30px;
+    padding: 0 5px;
+    background: $black;
+  }
+}
+
+.header{
+  @include flex-row;
+  @include flex-center;
+  font-size: 1.5em;
+}
+
+.logo {
+  a {
+    font-size: 1.4rem;
+
+    &:hover {
+      color: white;
+      text-decoration: none;
+    }
+  }
+}
+
+.spacer {
+  flex-grow: 1;
+}
+
+body {
+  @include flex-column;
+  @include flex-center;
+  background: $dark-grey;
+}
+
+header {
+  @include flex-row;
+  @include flex-center;
+  width: 100%;
+  height: 60px;
+  border-bottom: $white 1px solid;
+
+  .logo {
+    margin-left: 40px;
+  }
+}
+
+main {
+  @include flex-column;
+  @include flex-center;
+  flex-grow: 1;
+}
+
+.account{
+  @include flex-column;
+  align-items: center;
+  width: 400px;
+  height: 600px;
+
+  &__header{
+    width: 100%;
+    height: 60px;
+
+    border-top: $light-grey 1px solid;
+  }
+  &__avatar{
+    width: 100%;
+    height: 200px;
+
+    border-top: $light-grey 1px solid;
+    border-bottom: $light-grey 1px solid;
+  }
+  &__text-input{
+    width: 100%;
+    height: 60px;
+  }
+
+}
+
+
+footer {
+  @include flex-row;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+  height: 60px;
+  padding: 10px 20px;
+  background: $light-grey;
+}
