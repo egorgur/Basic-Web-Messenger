@@ -13,35 +13,69 @@
     <title>Document</title>
 </head>
 <body>
-<header></header>
-<div class="main-wrapper">
-    <div class="columns">
-        <div class="columns__room-column">
-            <div class="groups" id="rooms"></div>
-            <div class="room-column__add-new-button" id="newRoomButton" onclick="newRoomWindow.openWindow()">new room
-            </div>
-        </div>
-        <div class="column-wrapper">
-            <div class="room-header">
-                <div class="group-name" id="groupDataDisplay"></div>
-            </div>
-            <div class="messages-wrapper" id="messages">
-                <div style="order: 99999" id="lastToScrollElement">lastToScrollElement</div>
-            </div>
-            <div class="input-container">
-                <div class="files" id="files">
-                    {#                <div class="filePreview">#}
-                    {#                </div>#}
-                </div>
-                <div class="drop-file" id="dropZoneWindow">
-                    <div class="drop-file__header">Drop file here</div>
-                </div>
-                <label for="input"><textarea id="input" disabled></textarea></label>
-            </div>
-        </div>
-
+<header>
+    <div class="container">
+        <div class="logo"><a href="http://{{ request.get_host }}/messenger">Messenger</a></div>
+        <div class="spacer"></div>
+        <a class="account-link" href="http://{{ request.get_host }}/messenger/account">
+            {{ username }}
+            {% if has_avatar %}
+                <img class="icon" src="http://{{ request.get_host }}{{ avatar_path }}"
+                     alt="" width="50px" height="50px" id="avatarImage">
+            {% else %}
+                <img class="icon" src="{% static "messenger/img/empty-avatar.svg" %}"
+                     alt="" width="50px" height="50px" id="avatarImage">
+            {% endif %}
+        </a>
     </div>
-</div>
+</header>
+<main>
+    <div class="messenger">
+        <div class="messenger__side-bar">
+            <div class="messenger__rooms" id="rooms">
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                <div class="messenger__room">1</div>
+                
+            </div>
+            <div class="btn messenger__btn--add-room">+</div>
+        </div>
+        <div class="messenger__chat">
+            <div class="messenger__chat-header"></div>
+            <div class="messenger__chat-messages" id="messages"></div>
+            <div class="messenger__chat-input"></div>
+        </div>
+    </div>
+</main>
 <div class="group-actions-window" id="groupActionsWindow">
     <div>
         <text style="margin-left: 125px">Group</text>
@@ -138,7 +172,13 @@
     <div class="new-room__save-button" onclick="newRoomWindow.saveRoom()">Create room</div>
 </div>
 <div id="overlay"></div>
-<footer></footer>
+<footer>
+    <div class="container">
+        <div class="github"><a href="https://github.com/egorgur">github/egorgur</a></div>
+        <div class="spacer"></div>
+        <div class="telegram"><a>telegram/@egorgur</a></div>
+    </div>
+</footer>
 <script>const CSRF_TOKEN = '{{ csrf_token }}';</script>
 <script src="{% static 'messenger/js/fetch.js' %}?{{ csrf_token }}"></script>
 <script src="{% static 'messenger/js/websocket.js' %}?{{ csrf_token }}"></script>

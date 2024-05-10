@@ -3,11 +3,14 @@ console.log(baseURL)
 const roomsDiv = document.getElementById('rooms')
 const messageDiv = document.getElementById('messages')
 const groupNameElement = document.getElementById('groupDataDisplay')
-
 const groupDataDisplay = document.getElementById('groupDataDisplay')
 const overlay = document.getElementById('overlay')
 
+roomsDiv.style.height = (window.innerHeight - 180).toString() + "px"
+roomsDiv.style.flexGrow = "0"
 
+messageDiv.style.height = (window.innerHeight - 256).toString() + "px"
+messageDiv.style.flexGrow = "0"
 const Data = {
     user: {id: null, name: "",},
     allUsers: {/**
@@ -214,7 +217,7 @@ const Data = {
                     this.messages[parseInt(messageId)].show()
                 })
                 if (this.scrollPosition !== null) {
-                    console.log("scrollTo",this.scrollPosition)
+                    console.log("scrollTo", this.scrollPosition)
                     messageDiv.scrollTo(0, this.scrollPosition)
                 }
             },
@@ -259,6 +262,11 @@ const INPUT = {
 }
 
 
+window.addEventListener("resize", (event) => {
+    roomsDiv.style.height = (window.innerHeight - 180).toString() + "px"
+    messageDiv.style.height = (window.innerHeight - 256).toString() + "px"
+})
+
 INPUT.textInputElement.addEventListener('keydown', function (e) {
     const keyCode = e.which || e.keyCode;
     if (Data.currentRoomId !== null) {
@@ -286,23 +294,24 @@ const lastToScrollElement = document.getElementById("lastToScrollElement")
 
 function debounce(method, delay) {
     clearTimeout(method._tId);
-    method._tId= setTimeout(function(){
+    method._tId = setTimeout(function () {
         method();
     }, delay);
 }
+
 function getScrollPosition() {
     let y = -messageDiv.scrollTop
     Data.getCurrentRoom().scrollPosition = -y
     let offset = -lastToScrollElement.offsetTop
-    console.log("y", y, "pointerDivHeight", offset, "offset - y", offset-y); // scroll position from top
-    if (offset-y<100){
+    console.log("y", y, "pointerDivHeight", offset, "offset - y", offset - y); // scroll position from top
+    if (offset - y < 100) {
         REQUESTS.requestRoomMessages(Data.getCurrentRoom().messagesRequestsCount)
     }
 }
 
 function sendMessage() {
     if (Data.currentRoomId !== null) {
-        messageDiv.scrollTo(0,0)
+        messageDiv.scrollTo(0, 0)
         websocket.send(JSON.stringify({
             message: INPUT.textInputElement.value,
             room_id: Data.currentRoomId,
@@ -500,7 +509,7 @@ function websocketDataHandler(data) {
 
         for (const key in data["rooms"]) {
             const roomData = data["rooms"][key]
-            if (Data.rooms[roomData["id"]]=== undefined) {
+            if (Data.rooms[roomData["id"]] === undefined) {
                 Data.createRoomDiv(roomData)
                 Data.addRoom(roomData["id"])
                 Data.rooms[roomData["id"]].name = roomData["name"]
@@ -510,13 +519,21 @@ function websocketDataHandler(data) {
                 Data.rooms[roomData["id"]].rules = roomData["rules"]
             }
         }
-        for (const roomId in Data.rooms){
+        for (const roomId in Data.rooms) {
             let deleteFlag = true
-            console.log("find",data["rooms"].find((room)=>{console.log("room.id",room.id,"roomId",roomId);return room.id===parseInt(roomId)}))
-            if (data["rooms"].find((room)=>{console.log(data["rooms"],room);return room.id===parseInt(roomId)})!==undefined){
-                deleteFlag=false
+            console.log("find", data["rooms"].find((room) => {
+                console.log("room.id", room.id, "roomId", roomId);
+                return room.id === parseInt(roomId)
+            }))
+            if (data["rooms"].find((room) => {
+                console.log(data["rooms"], room);
+                return room.id === parseInt(roomId)
+            }) !== undefined) {
+                deleteFlag = false
             }
-            if (deleteFlag){Data.deleteRoom(roomId)}
+            if (deleteFlag) {
+                Data.deleteRoom(roomId)
+            }
         }
     }
     if (data["allUsers"]) {
@@ -591,7 +608,7 @@ function websocketDataHandler(data) {
             } else {
                 setRulesWindow.groupWindowButton.style.display = "inherit"
             }
-            if (!Data.getCurrentRoom().isOwner(Data.user.id)){
+            if (!Data.getCurrentRoom().isOwner(Data.user.id)) {
                 deleteConfirmWindow.groupWindowButton.style.display = "none"
             } else {
                 deleteConfirmWindow.groupWindowButton.style.display = "inherit"
@@ -624,7 +641,7 @@ function websocketDataHandler(data) {
             Data.getCurrentRoom().insertMessage(data["messages"][key])
         }
         Data.getCurrentRoom().showMessages()
-        if (data["messages"].length>9) {
+        if (data["messages"].length > 9) {
             Data.getCurrentRoom().messagesRequestsCount++
         }
     }
@@ -1058,7 +1075,7 @@ const inviteUsersWindow = {
         this.inviteUsersDiv.replaceChildren()
         for (const userId in Data.allUsers) {
             const userData = Data.allUsers[userId]
-            if ((Data.getCurrentRoom().users[userData.id]=== undefined)&&(userData.id !== Data.user.id)) {
+            if ((Data.getCurrentRoom().users[userData.id] === undefined) && (userData.id !== Data.user.id)) {
                 console.log(userData)
                 this.createUserDiv(userData)
             }
@@ -1105,7 +1122,7 @@ const kickUserWindow = {
         this.kickWindowUsers.replaceChildren()
         for (const user in Data.allUsers) {
             const userData = Data.allUsers[user]
-            if ((Data.getCurrentRoom().users[userData.id]!== undefined)&&(userData.id !== Data.user.id)) {
+            if ((Data.getCurrentRoom().users[userData.id] !== undefined) && (userData.id !== Data.user.id)) {
                 console.log(userData)
                 this.createUserDiv(userData)
             }

@@ -12,31 +12,35 @@
 </head>
 <body>
 <header>
-    <div class="logo header__logo"><a href="">Messenger</a></div>
-    <div class="spacer header__spacer"></div>
+    <div class="container">
+        <div class="logo"><a href="http://{{ request.get_host }}/messenger">Messenger</a></div>
+        <div class="spacer"></div>
+    </div>
 </header>
 <main>
-    <div class="container">
-        <div class="registration">
-            <div class="header registration__header">Registration</div>
-            <div class="text-input registration__text-input">
-                <label for="username"></label><input type="text" id="username" placeholder="Enter your username">
-            </div>
-            <div class="text-input registration__text-input">
-                <label for="password1"></label><input type="password" id="password1" placeholder="Enter your password">
-            </div>
-            <div class="text-input registration__text-input">
-                <label for="password2"></label><input type="password" id="password2" placeholder="Enter your password again">
-            </div>
-            <div class="btn registration__btn" onclick="sendRegisteredUser()">Authorize</div>
-            <div class="error-popup registration__error-popup" id="error-popup">test error</div>
-            <a onclick="" id="loginRedirect">I do have an account</a>
+    <div class="registration">
+        <div class="header registration__header">Registration</div>
+        <div class="text-input registration__text-input">
+            <label for="username"></label><input type="text" id="username" placeholder="Enter your username">
         </div>
+        <div class="text-input registration__text-input">
+            <label for="password1"></label><input type="password" id="password1" placeholder="Enter your password">
+        </div>
+        <div class="text-input registration__text-input">
+            <label for="password2"></label><input type="password" id="password2"
+                                                  placeholder="Enter your password again">
+        </div>
+        <div class="btn registration__btn" onclick="sendRegisteredUser()">Authorize</div>
+        <div class="error-popup registration__error-popup" id="error-popup">test error</div>
+        <a onclick="" id="loginRedirect">I do have an account</a>
     </div>
 </main>
 <footer>
-    <div class="github"><a href="https://github.com/egorgur">github/egorgur</a></div>
-    <div class="telegram"><a>telegram/@egorgur</a></div>
+    <div class="container">
+        <div class="github"><a href="https://github.com/egorgur">github/egorgur</a></div>
+        <div class="spacer"></div>
+        <div class="telegram"><a>telegram/@egorgur</a></div>
+    </div>
 </footer>
 <script> const CSRF_TOKEN = '{{ csrf_token }}';</script>
 <script src="{% static 'messenger/js/fetch.js' %}?{{ csrf_token }}"></script>

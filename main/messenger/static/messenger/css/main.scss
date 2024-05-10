@@ -1,7 +1,6 @@
 @import "variables";
 @import "mixins";
 
-
 * {
   color: $text-white;
   font-family: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
@@ -86,6 +85,7 @@ a {
 body {
   @include flex-column;
   @include flex-center;
+  //background: $dark-grey;
   background: $dark-grey;
 }
 
@@ -100,7 +100,7 @@ body {
 }
 
 .container {
-  @include flex-row;
+  display: flex;
   max-width: 1000px;
   min-width: 600px;
   width: 100%;
@@ -129,108 +129,102 @@ main {
   @include flex-column;
   @include flex-center;
   flex-grow: 1;
+  width: 100%;
 }
 
-.account {
-  @include flex-column;
+.messenger {
+  @include flex-row;
   align-items: center;
-  width: 400px;
-  height: 600px;
 
-  &__header {
-    width: 100%;
-    height: 60px;
+  width: 100%;
+  max-width: 1000px;
+  height: 100%;
 
-    border-top: $light-grey 1px solid;
+  padding: 4px 0;
+  //border: $light-grey 1px solid;
+
+  &__side-bar {
+    @include flex-column;
+    width: 200px;
+    height: 100%;
+    padding: 2px;
+    border: $light-grey 1px solid;
+    border-radius: 5px;
+    transition: border $transition-duration;
+
+    &:hover {
+      border: $grey-accent 1px solid;
+    }
   }
 
-  &__avatar {
+  &__rooms {
     @include flex-column;
+    width: 100%;
+    flex-grow: 1;
+    gap: 5px;
+    //border: $white 1px dotted;
+    border-radius: 5px;
+
+    overflow-y: scroll;
+    scroll-behavior: smooth;
+
+
+    @include scroll-bar;
+  }
+
+  &__room {
+    @include flex-row;
     @include flex-center;
     width: 100%;
-    height: 230px;
-
-    border-top: $light-grey 1px solid;
-    border-bottom: $light-grey 1px solid;
-  }
-
-  #avatarInput {
-    display: none;
-  }
-
-  &__input-img {
-    display: block;
-    margin-top: 10px;
-    padding: 5px;
+    height: 50px;
+    flex-shrink: 0;
     border: $light-grey 1px solid;
-    transition: background-color $transition-duration,
-    color $transition-duration;
-
-    &:hover {
-      background-color: $white;
-      color: $black;
-      cursor: pointer;
-    }
+    border-radius: 5px;
   }
 
-
-  &__text-input {
-    width: 100%;
-    height: 40px;
-
-    border-bottom: $light-grey 1px solid;
-
-    input {
-      width: 180px;
-      height: 30px;
-      margin-left: 5px;
-    }
-  }
-
-  &__change-password {
+  &__btn--add-room {
     @include flex-row;
-    justify-content: left;
-    align-items: center;
+    @include flex-center;
     width: 100%;
     height: 40px;
-
-    border-bottom: $light-grey 1px solid;
+    margin-top: 4px;
+    border-radius: 5px;
   }
 
-  &__change-password-btn {
-    width: 180px;
-    height: 30px;
-  }
-
-  &__save-account-btn {
-    margin: 10px 0;
-  }
-
-  &__error-popup {
-    width: 100%;
-    height: 1px;
-    border-top: $light-grey 1px solid;
-    border-bottom: transparent 1px solid;
-    transition: height $transition-duration,
-    border-bottom-color $transition-duration;
-  }
-
-  &__error-popup.active {
-    height: 40px;
-    border-bottom-color: $light-grey;
-  }
-
-  &__leave-account-btn {
-    margin-top: 10px;
-    color: $red;
-    transition: background-color $transition-duration;
+  &__chat {
+    @include flex-column;
+    flex-grow: 1;
+    height: 100%;
+    margin-left: 4px;
+    padding: 3px;
+    border: $light-grey 1px solid;
+    border-radius: 5px;
+    transition: border $transition-duration;
 
     &:hover {
-      background-color: $red;
+      border: $grey-accent 1px solid;
     }
   }
 
+  &__chat-header {
+    width: 100%;
+    height: 60px;
+    border-radius: 5px 5px 0 0;
+    background: $grey;
+    border: $light-grey 1px solid;
+  }
 
+  &__chat-messages {
+    flex-grow: 1;
+    //border: $light-grey 1px solid;
+  }
+
+  &__chat-input {
+    width: 100%;
+    height: 60px;
+    border-radius: 0 0 5px 5px;
+    border: $light-grey 1px solid;
+  }
 }
 
 footer {
@@ -247,4 +241,28 @@ footer {
   &:hover {
     border-top-color: $grey-accent;
   }
+
+  .container {
+    @include flex-row;
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

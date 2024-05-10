@@ -12,11 +12,12 @@
 </head>
 <body>
 <header>
-    <div class="logo"><a href="">Messenger</a></div>
-    <div class="spacer"></div>
+    <div class="container">
+        <div class="logo"><a href="http://{{ request.get_host }}/messenger">Messenger</a></div>
+        <div class="spacer"></div>
+    </div>
 </header>
 <div class="main-wrapper">
-    <div class="container">
         <div class="login">
             <div class="header">Login</div>
             <div class="text-input">
@@ -29,11 +30,13 @@
             <div id="error-popup">test error</div>
             <a onclick="" id="registrationRedirect">I do not have an account</a>
         </div>
-    </div>
 </div>
 <footer>
-    <div class="github"><a href="https://github.com/egorgur">github/egorgur</a></div>
-    <div class="telegram"><a>telegram/@egorgur</a></div>
+    <div class="container">
+        <div class="github"><a href="https://github.com/egorgur">github/egorgur</a></div>
+        <div class="spacer"></div>
+        <div class="telegram"><a>telegram/@egorgur</a></div>
+    </div>
 </footer>
 <script> const CSRF_TOKEN = '{{ csrf_token }}';</script>
 <script src="{% static 'messenger/js/fetch.js' %}?{{ csrf_token }}"></script>

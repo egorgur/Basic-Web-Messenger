@@ -12,8 +12,20 @@
 </head>
 <body>
 <header>
-    <div class="logo header__logo"><a href="">Messenger</a></div>
-    <div class="spacer header__spacer"></div>
+    <div class="container">
+        <div class="logo"><a href="http://{{ request.get_host }}/messenger">Messenger</a></div>
+        <div class="spacer"></div>
+        <a class="account-link" href="http://{{ request.get_host }}/messenger/account">
+            {{ username }}
+            {% if has_avatar %}
+                <img class="icon" src="http://{{ request.get_host }}{{ avatar_path }}"
+                     alt="" width="50px" height="50px" id="avatarImage">
+            {% else %}
+                <img class="icon" src="{% static "messenger/img/empty-avatar.svg" %}"
+                     alt="" width="50px" height="50px" id="avatarImage">
+            {% endif %}
+        </a>
+    </div>
 </header>
 <main>
     <div class="account">
@@ -46,11 +58,14 @@
     </div>
 </main>
 <footer>
-    <div class="github"><a href="https://github.com/egorgur">github/egorgur</a></div>
-    <div class="telegram"><a>telegram/@egorgur</a></div>
+    <div class="container">
+        <div class="github"><a href="https://github.com/egorgur">github/egorgur</a></div>
+        <div class="spacer"></div>
+        <div class="telegram"><a>telegram/@egorgur</a></div>
+    </div>
 </footer>
-<script> 
-    const CSRF_TOKEN = '{{ csrf_token }}';
+<script>
+    const CSRF_TOKEN = "{{ csrf_token }}";
     const emptyAvatarUrl = '{% static "messenger/img/empty-avatar.svg" %}';
 </script>
 <script src="{% static 'messenger/js/fetch.js' %}?{{ csrf_token }}"></script>

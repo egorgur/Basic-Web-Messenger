@@ -23,10 +23,22 @@ import json
 def entry(request):
     if request.user.is_anonymous or not request.user.is_authenticated:
         return HttpResponseRedirect("/messenger/login/")
+    user_settings = UserSettings.objects.get(user=request.user)
+    avatar = user_settings.avatar
+    has_avatar = True
+    if avatar is None:
+        has_avatar = False
+        avatar_path = ""
+    else:
+        avatar_path = settings.MEDIA_URL + avatar.file.name
     return render(
         request=request,
         template_name='messenger/main.html',
-        context={}
+        context={
+            "username": request.user.username,
+            "has_avatar": has_avatar,
+            "avatar_path": avatar_path
+        }
     )
 
 
@@ -41,25 +53,25 @@ def login_view(request):
 def account(request):
     if request.user.is_anonymous or not request.user.is_authenticated:
         return HttpResponseRedirect("/messenger/login/")
+
+    print(request.user.username)
+    user_settings = UserSettings.objects.get(user=request.user)
+    avatar = user_settings.avatar
+    has_avatar = True
+    if avatar is None:
+        has_avatar = False
+        avatar_path = ""
     else:
-        print(request.user.username)
-        user_settings = UserSettings.objects.get(user=request.user)
-        avatar = user_settings.avatar
-        has_avatar = True
-        if avatar is None:
-            has_avatar = False
-            avatar_path = ""
-        else:
-            avatar_path = settings.MEDIA_URL + avatar.file.name
-        return render(
-            request=request,
-            template_name="messenger/account.html",
-            context={
-                'username': request.user.username,
-                "has_avatar": has_avatar,
-                "avatar_path": avatar_path
-            }
-        )
+        avatar_path = settings.MEDIA_URL + avatar.file.name
+    return render(
+        request=request,
+        template_name="messenger/account.html",
+        context={
+            "username": request.user.username,
+            "has_avatar": has_avatar,
+            "avatar_path": avatar_path
+        }
+    )
 
 
 def logout_user(request):
@@ -73,7 +85,23 @@ def logout_user(request):
 def change_password(request):
     if request.user.is_anonymous or not request.user.is_authenticated:
         return HttpResponseRedirect("/messenger/login/")
-    return render(request=request, template_name="messenger/password.html")
+    user_settings = UserSettings.objects.get(user=request.user)
+    avatar = user_settings.avatar
+    has_avatar = True
+    if avatar is None:
+        has_avatar = False
+        avatar_path = ""
+    else:
+        avatar_path = settings.MEDIA_URL + avatar.file.name
+    return render(
+        request=request,
+        template_name="messenger/password.html",
+        context={
+            'username': request.user.username,
+            "has_avatar": has_avatar,
+            "avatar_path": avatar_path
+        }
+    )
 
 
 def save_account(request):
@@ -139,7 +167,7 @@ def files(request):
             uploaded_file = request.FILES['file']
             fs = FileSystemStorage()
             fs.save(uploaded_file.name, uploaded_file)
-            print("accImg","account_image" in request.POST)
+            print("accImg", "account_image" in request.POST)
             print(request.POST)
             if 'messageId' in request.POST:
                 message_id = request.POST['messageId']
@@ -207,17 +235,25 @@ def save_password(request):
     if request.user.check_password(data["oldPass"]):
         request.user.set_password(data["firstPass"])
         request.user.save()
+
         answer = AnswerData(
             answer_type="good",
             main_data={},
             comment="New password was set",
         )
         answer = dataclasses.asdict(answer)
+        user = authenticate(
+            request=request,
+            username=request.user.username,
+            password=data["firstPass"]
+        )
+        if user is not None:
+            login(request, user)
     else:
         answer = AnswerData(
             answer_type="bad",
             main_data={},
-            comment="old password is incorrect",
+            comment="Old password is incorrect",
         )
         answer = dataclasses.asdict(answer)
     return JsonResponse(answer)
