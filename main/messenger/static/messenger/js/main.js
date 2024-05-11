@@ -3,14 +3,15 @@ console.log(baseURL)
 const roomsDiv = document.getElementById('rooms')
 const messageDiv = document.getElementById('messages')
 const groupNameElement = document.getElementById('groupDataDisplay')
-const groupDataDisplay = document.getElementById('groupDataDisplay')
+const chatHeader = document.getElementById('chatHeader')
 const overlay = document.getElementById('overlay')
 
 roomsDiv.style.height = (window.innerHeight - 180).toString() + "px"
 roomsDiv.style.flexGrow = "0"
 
-messageDiv.style.height = (window.innerHeight - 256).toString() + "px"
+messageDiv.style.height = (window.innerHeight - 264).toString() + "px"
 messageDiv.style.flexGrow = "0"
+
 const Data = {
     user: {id: null, name: "",},
     allUsers: {/**
@@ -28,6 +29,7 @@ const Data = {
             this.getCurrentRoom().hideMessages()
         }
         this.currentRoomId = id
+        this.showChat()
         if (INPUT[Data.currentRoomId]) {
             INPUT.textInputElement.value = INPUT[Data.currentRoomId]['text']
         } else {
@@ -44,15 +46,25 @@ const Data = {
         }
         fileInputWindow.openWindow()
         showRoomName()
+
+    },
+    showChat() {
+        chatHeader.style.display = ""
+        messageDiv.style.display = ""
+        INPUT.chatInputContainer.style.display = ""
+    },
+    hideChat() {
+        chatHeader.style.display = "none"
+        messageDiv.style.display = "none"
+        INPUT.chatInputContainer.style.display = "none"
     },
     createRoomDiv(roomData) {
         let div = document.createElement("div");
-        div.className = "room"
+        div.className = "messenger__room"
         div.onclick = function () {
             Data.chooseRoom(roomData.id)
         }
-        div.id = "room_" + roomData.id
-        div.innerHTML = 'Room ' + roomData.id + ' ' + roomData.name;
+        div.innerHTML = roomData.name;
         roomsDiv.appendChild(div);
     },
     deleteRoomDiv(roomId) {
@@ -65,6 +77,7 @@ const Data = {
         }
         if (this.currentRoomId === roomId) {
             this.currentRoomId = null
+            this.hideChat()
         }
         delete this.rooms[roomId]
     },
@@ -84,8 +97,22 @@ const Data = {
             reloadMessageDiv(messageData) {
                 const div = document.getElementById("message_" + messageData["messageId"])
                 const author = Data.allUsers[messageData.authorId]
-                div.innerHTML = "<div class=\"message-author\">" + author.name +
-                    "</div><div class=\"message-body\">" + messageData.text + "</div>"
+                div.className = "messenger__chat-message"
+                if (messageData.authorId === Data.user.id) {
+                    div.classList.add("messenger__chat-message--user")
+                }
+                div.style.order = messageData["order"]
+                div.id = "message_" + messageData["messageId"]
+                let authorIconHref = emptyAvatarHref
+                if (author.userAvatar !== "") {
+                    authorIconHref = "http://" + window.location.host + author.userAvatar
+                }
+                div.innerHTML = "<img class='author-icon' src=" + authorIconHref + " alt=" + author.username[0] + " height=\"50px\" width='50px' id=\"avatarImage\">"
+                div.innerHTML += "<div class='message-content'></div>"
+                const content = div.getElementsByTagName("div")[0]
+                content.innerHTML = "<div class='message-author'>" + author.username + "</div>"
+                content.innerHTML += "<div class='message-text'>" + messageData.text + "</div>"
+
                 for (const file in messageData["media"]) {
                     const fileData = messageData["media"][file]
                     // console.log(fileData)
@@ -93,14 +120,14 @@ const Data = {
                     // console.log("format ", format)
                     const mediaHref = "http://" + window.location.host + "/media/" + fileData['file']
                     if (["mp4", "webm"].find(value => value === format)) {
-                        div.innerHTML += "<div>" + "<video style='max-width: 400px' src=\'" + mediaHref + "\' controls/>" + "</div>"
+                        content.innerHTML += "<div class='message-file'>" + "<video style='max-width: 400px' src=\'" + mediaHref + "\' controls/>" + "</div>"
                     } else if (["jpg", "jpeg", "png", "gif"].find(value => value === format)) {
-                        div.innerHTML += "<div>" + "<img style='max-width: 400px' src=\'" + mediaHref + "\' alt=''/>" + "</div>"
+                        content.innerHTML += "<div class='message-file'>" + "<img style='max-width: 400px' src=\'" + mediaHref + "\' alt=''/>" + "</div>"
                     } else if (["waw", "mp3"].find(value => value === format)) {
-                        div.innerHTML += "<div>" + "<audio style='' src=\'" + mediaHref + "\' controls/>" + "</div>"
+                        content.innerHTML += "<div class='message-file'>" + "<audio style='' src=\'" + mediaHref + "\' controls/>" + "</div>"
                     } else {
-                        div.innerHTML +=
-                            "<div style='min-height: 40px; margin: 5px 0;' class=\'flex-r a-c\'>"
+                        content.innerHTML +=
+                            "<div class='message-file' style='min-height: 40px; margin: 5px 0;' class=\'flex-r a-c\'>"
                             + "<a style='max-width: 400px;' href=\'" + mediaHref + "\'> File: " + fileData["file_name"] + "</a>"
                             + "</div>"
                     }
@@ -109,12 +136,24 @@ const Data = {
             createMessageDiv(messageData) {
                 // console.log("messageData", messageData)
                 const div = document.createElement("div");
-                div.className = "message"
+                const author = Data.allUsers[messageData.authorId]
+                console.log(author)
+                div.className = "messenger__chat-message"
+                if (messageData.authorId === Data.user.id) {
+                    div.classList.add("messenger__chat-message--user")
+                }
                 div.style.order = messageData["order"]
                 div.id = "message_" + messageData["messageId"]
-                const author = Data.allUsers[messageData.authorId]
-                div.innerHTML = "<div class=\"message-author\">" + author.username +
-                    "</div><div class=\"message-body\">" + messageData.text + "</div>"
+                let authorIconHref = emptyAvatarHref
+                if (author.userAvatar !== "") {
+                    authorIconHref = "http://" + window.location.host + author.userAvatar
+                }
+                div.innerHTML = "<img class='author-icon' src=" + authorIconHref + " alt=" + author.username[0] + " height=\"50px\" width='50px' id=\"avatarImage\">"
+                div.innerHTML += "<div class='message-content'></div>"
+                const content = div.getElementsByTagName("div")[0]
+                content.innerHTML = "<div class='message-author'>" + author.username + "</div>"
+                content.innerHTML += "<div class='message-text'>" + messageData.text + "</div>"
+
                 for (const file in messageData["media"]) {
                     const fileData = messageData["media"][file]
                     // console.log(fileData)
@@ -122,19 +161,18 @@ const Data = {
                     // console.log("format ", format)
                     const mediaHref = "http://" + window.location.host + "/media/" + fileData['file']
                     if (["mp4", "webm"].find(value => value === format)) {
-                        div.innerHTML += "<div>" + "<video style='max-width: 400px' src=\'" + mediaHref + "\' controls/>" + "</div>"
+                        content.innerHTML += "<div class='message-file'>" + "<video style='max-width: 400px' src=\'" + mediaHref + "\' controls/>" + "</div>"
                     } else if (["jpg", "jpeg", "png", "gif"].find(value => value === format)) {
-                        div.innerHTML += "<div>" + "<img style='max-width: 400px' src=\'" + mediaHref + "\' alt=''/>" + "</div>"
+                        content.innerHTML += "<div class='message-file'>" + "<img style='max-width: 400px' src=\'" + mediaHref + "\' alt=''/>" + "</div>"
                     } else if (["waw", "mp3"].find(value => value === format)) {
-                        div.innerHTML += "<div>" + "<audio style='' src=\'" + mediaHref + "\' controls/>" + "</div>"
+                        content.innerHTML += "<div class='message-file'>" + "<audio style='' src=\'" + mediaHref + "\' controls/>" + "</div>"
                     } else {
-                        div.innerHTML +=
-                            "<div style='min-height: 40px; margin: 5px 0;' class=\'flex-r a-c\'>"
+                        content.innerHTML +=
+                            "<div class='message-file' style='min-height: 40px; margin: 5px 0;' class=\'flex-r a-c\'>"
                             + "<a style='max-width: 400px;' href=\'" + mediaHref + "\'> File: " + fileData["file_name"] + "</a>"
                             + "</div>"
                     }
                 }
-
                 messageDiv.appendChild(div)
             },
             deleteMessageDiv(messageId) {
@@ -240,7 +278,9 @@ const Data = {
 }
 
 const INPUT = {
-    textInputElement: document.getElementById('input'),
+    textInputElement: document.getElementById('textInput'),
+    textInputContainer: document.getElementById("textInputContainer"),
+    chatInputContainer: document.getElementById("chatInputContainer"),
     /**
      * roomId: {
      *     text: string of input
@@ -262,10 +302,18 @@ const INPUT = {
 }
 
 
-window.addEventListener("resize", (event) => {
-    roomsDiv.style.height = (window.innerHeight - 180).toString() + "px"
-    messageDiv.style.height = (window.innerHeight - 256).toString() + "px"
-})
+window.addEventListener("resize", activeWindowsResize)
+
+function activeWindowsResize() {
+    const InputContainerHeight = parseInt(INPUT.chatInputContainer.style.height)
+    if (InputContainerHeight <= 400) {
+        roomsDiv.style.height = (window.innerHeight - 180).toString() + "px"
+        messageDiv.style.height = (window.innerHeight - 204 - InputContainerHeight).toString() + "px"
+        console.log(InputContainerHeight)
+        console.log(roomsDiv.style.height, messageDiv.style.height)
+    }
+}
+
 
 INPUT.textInputElement.addEventListener('keydown', function (e) {
     const keyCode = e.which || e.keyCode;
@@ -285,6 +333,16 @@ INPUT.textInputElement.addEventListener('keydown', function (e) {
         INPUT.textInputElement.value = ""
     }
 });
+
+INPUT.textInputElement.addEventListener("input", (event) => {
+    INPUT.textInputElement.style.height = "1px";
+    INPUT.textInputElement.style.height = (INPUT.textInputElement.scrollHeight) + "px";
+    const height = parseInt(INPUT.textInputElement.style.height) + 43
+    console.log(height, parseInt(INPUT.chatInputContainer.style.height))
+    INPUT.chatInputContainer.style.height = height.toString() + "px"
+    activeWindowsResize()
+})
+
 messageDiv.addEventListener("scroll", function () {
     debounce(getScrollPosition, 100)
 })
@@ -698,7 +756,7 @@ function wierdMessageDataParser(messageData) {
     return messageData
 }
 
-groupDataDisplay.addEventListener('click', (event) => {
+chatHeader.addEventListener('click', (event) => {
     if (Data.currentRoomId === null) return null
     GroupMenuWindow.openWindow()
 })

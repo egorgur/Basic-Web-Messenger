@@ -3,8 +3,10 @@ import json
 from channels.consumer import AsyncConsumer
 from channels.exceptions import StopConsumer
 
-from .models import Room, RoomAdmin, Message, User, Media
+from .models import Room, RoomAdmin, Message, User, Media, UserSettings
 from channels.db import database_sync_to_async
+
+from main import settings
 
 user_channels = {}
 
@@ -108,6 +110,9 @@ class Consumer(AsyncConsumer):
                 room_admins = await database_sync_to_async(list)(
                     room_administration.admins.all().values('id', 'username'))
                 room_users = await database_sync_to_async(list)(room.users.all().values('id', 'username'))
+                for i in range(len(room_users)):
+                    user = room_users[i]["id"]
+                    print('user',user)
                 room_rules = room.rules
                 room_data = {
                     "roomId": received["room_id"],
@@ -357,6 +362,16 @@ class Consumer(AsyncConsumer):
                 answer = {
                     "allUsers": users_data
                 }
+                for i in range(len(users_data)):
+                    user = await database_sync_to_async(User.objects.get)(id=users_data[i]["id"])
+                    user_settings = await database_sync_to_async(UserSettings.objects.get)(user=user)
+                    avatar = await database_sync_to_async(lambda: user_settings.avatar)()
+                    if avatar is None:
+                        has_avatar = False
+                        avatar_path = ""
+                    else:
+                        avatar_path = settings.MEDIA_URL + avatar.file.name
+                    users_data[i]["userAvatar"] = avatar_path
                 print('answered: ', json.dumps(answer))
                 await self.send({
                     "type": "websocket.send",

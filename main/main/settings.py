@@ -46,13 +46,13 @@ INSTALLED_APPS = [
 ]
 # 'django.middleware.security.SecurityMiddleware',
 MIDDLEWARE = [
-    'messenger.middlewares.RangesMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'messenger.middlewares.RangesMiddleware',
 ]
 
 ROOT_URLCONF = 'main.urls'

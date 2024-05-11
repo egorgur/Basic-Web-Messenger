@@ -1,7 +1,12 @@
 import os.path
 
+import mimetypes
+from pathlib import Path
+from django.core.files.base import ContentFile
+from django.utils._os import safe_join
+
 from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, FileResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.core.files.storage import FileSystemStorage
@@ -139,6 +144,7 @@ def save_account(request):
 
 
 def media_view(request, path):
+    print("middle aaaa")
     if request.user.is_anonymous or not request.user.is_authenticated:
         return HttpResponse("restricted access")
     if request.method == "GET":
@@ -148,17 +154,29 @@ def media_view(request, path):
             message = Message.objects.get(pk=message_id)
             room = message.room_id
             if room.users.filter(id=request.user.id).exists():
-                media_path = os.path.join(settings.MEDIA_ROOT, path)
-                with open(media_path, "rb") as file:
-                    return HttpResponse(file.read(), content_type="application/octet-stream")
+                media_path = Path(safe_join(settings.MEDIA_ROOT, path))
+                statobj = media_path.stat()
+                content_type, encoding = mimetypes.guess_type(str(media_path))
+                content_type = content_type or "application/octet-stream"
+                print("content_type",content_type)
+                response = FileResponse(media_path.open("rb"), content_type=content_type)
+                if encoding:
+                    response.headers["Content-Encoding"] = encoding
+                return response
             else:
-                HttpResponse("restricted access")
+                return HttpResponse("restricted access")
         else:
-            media_path = os.path.join(settings.MEDIA_ROOT, path)
-            with open(media_path, "rb") as file:
-                return HttpResponse(file.read(), content_type="application/octet-stream")
+            media_path = Path(safe_join(settings.MEDIA_ROOT, path))
+            statobj = media_path.stat()
+            content_type, encoding = mimetypes.guess_type(str(media_path))
+            content_type = content_type or "application/octet-stream"
+            print("content_type", content_type)
+            response = FileResponse(media_path.open("rb"), content_type=content_type)
+            if encoding:
+                response.headers["Content-Encoding"] = encoding
+            return response
     else:
-        HttpResponse("restricted access")
+        return HttpResponse("restricted access")
 
 
 def files(request):
