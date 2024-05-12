@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{% static 'messenger/css/styleNull.css' %}?{{ csrf_token }}">
     <link rel="stylesheet" href="{% static 'messenger/css/main.css' %}?{{ csrf_token }}">
     <link rel="stylesheet" href="{% static 'messenger/css/main-windows.css' %}?{{ csrf_token }}">
-    <link rel="stylesheet" href="{% static 'messenger/css/main-drop-window.css' %}?{{ csrf_token }}">
+    {#    <link rel="stylesheet" href="{% static 'messenger/css/main-drop-window.css' %}?{{ csrf_token }}">#}
     <title>Document</title>
 </head>
 <body>
@@ -34,122 +34,166 @@
         <div class="messenger__side-bar">
             <div class="messenger__rooms" id="rooms">
             </div>
-            <div class="btn messenger__btn--add-room">+</div>
+            <div class="btn messenger__btn--add-room" onclick="newRoomWindow.openWindow()">+</div>
         </div>
         <div class="messenger__chat" id="chatWindow">
             <div class="messenger__chat-header" style="display: none" id="chatHeader">
-                <div class="messenger__chat-header--room-name"></div>
+                <div class="messenger__chat-header--room-name" id="roomName"></div>
                 <div class="spacer"></div>
             </div>
-            <div class="messenger__chat-messages" style="display: none" id="messages">
-                <div style="order: 9999999; align-self: center" id="lastToScrollElement"><----------></div>
+            <div class="messenger__chat-messages" style="display: none;" id="messages">
+                <div style="order: 9999999; align-self: center;flex-shrink: 0" id="lastToScrollElement"><---------->
+                </div>
 
             </div>
             <div class="messenger__chat-input" id="chatInputContainer" style="display: none;height: 60px;">
-                <div class="btn messenger__attach-file">+</div>
+                <label class="btn messenger__attach-file" for="fileInput">+</label>
+                <input type="file" id="fileInput" style="display: none">
                 <div class="messenger__text-input" id="textInputContainer">
                     <label for="textInput"></label>
                     <textarea type="text" id="textInput" cols="1" rows="1" placeholder="Write a message..."></textarea>
                 </div>
-                <div class="btn messenger__send-message-btn">>></div>
+                <div class="btn messenger__send-message-btn" id="sendMessageButton" onclick="sendMessage()">>></div>
+                <div class="messenger__file-drop-window" id="dropZoneWindow">Drop file here</div>
+                <div class="messenger__files-window" id="files"></div>
             </div>
         </div>
     </div>
 </main>
-<div class="group-actions-window" id="groupActionsWindow">
-    <div>
-        <text style="margin-left: 125px">Group</text>
-        <button class="close-window" onclick="GroupMenuWindow.closeWindow();overlay.classList.remove('active')">
+<div class="modal modal--room-menu" id="groupActionsWindow">
+    <div class="modal__pre-header modal--room-menu__pre-header">
+        <button onclick="GroupMenuWindow.closeWindow();overlay.classList.remove('active')">
+            &times;
+        </button>
+        <div class="spacer"></div>
+    </div>
+    <div class="modal__header modal--room-menu__header">
+        <div id="GroupMenuWindowName">TEST</div>
+    </div>
+    <div class="modal__action modal--room-menu__action" onclick="GroupMenuWindow.renameGroup()" id="groupRename">Rename
+    </div>
+    <div class="modal__action modal--room-menu__action" onclick="GroupMenuWindow.setRules()" id="groupRules">Rules</div>
+    <div class="modal__action modal--room-menu__action" onclick="GroupMenuWindow.inviteToRoom()" id="groupInvite">
+        Invite
+    </div>
+    <div class="modal__action modal--room-menu__action" onclick="GroupMenuWindow.kickFromRoom()" id="groupKick">Kick
+    </div>
+    <div class="modal__action modal--room-menu__action" onclick="GroupMenuWindow.leaveRoom()" id="groupLeave">Leave</div>
+    <div class="modal__action modal--room-menu__action" onclick="GroupMenuWindow.deleteRoom()" id="groupDelete">Delete
+    </div>
+</div>
+<div class="modal modal--delete-confirm" id="deleteConfirm">
+    <div class="modal--delete-confirm__header" id="deleteConfirmHeader">
+        <span>Are you sure you want to delete this room?</span>
+        <span>Room data will be unrecoverable.</span>
+    </div>
+    <div class="btn modal--delete-confirm__cancel-btn" onclick="deleteConfirmWindow.cancel()">Cancel</div>
+    <div class="btn modal--delete-confirm__confirm-btn" onclick="deleteConfirmWindow.deleteRoom()">DELETE</div>
+</div>
+<div class="modal modal--leave-confirm" id="leaveConfirm">
+    <div class="modal--leave-confirm__header" id="leaveConfirmHeader">
+        <span>Are you sure you want to leave this room?</span>
+    </div>
+    <div class="btn modal--leave-confirm__cancel-btn" onclick="leaveConfirmWindow.cancel()">Cancel</div>
+    <div class="btn modal--leave-confirm__confirm-btn" onclick="leaveConfirmWindow.leaveRoom()">LEAVE</div>
+</div>
+<div class="modal modal--rename-room" id="renameRoomWindow">
+    <div class="modal__pre-header modal--rename-room__pre-header">
+        <button onclick="RoomRenameWindow.closeWindow();GroupMenuWindow.openWindow();">
+            &times;
+        </button>
+        <div class="spacer"></div>
+    </div>
+    <div class="modal--rename-room__header" id="renameWindowOldName">test</div>
+    <div class="text-input modal--rename-room__text-input"><label for="renameRoomInput"></label><input
+            id="renameRoomInput" type="text"></div>
+    <button class="btn modal--rename-room__save-btn" id="saveNewName" onclick="RoomRenameWindow.saveNewName()">SAVE
+    </button>
+</div>
+<div class="modal modal--room-rules" id="setRulesWindow">
+    <div class="modal__pre-header modal--room-rules__pre-header">
+        <button onclick="setRulesWindow.closeWindow();GroupMenuWindow.openWindow();">
             &times;
         </button>
     </div>
-    <div class="group-window__header">
-        <div class="window__header__group-name" id="GroupMenuWindowName">TEST</div>
-    </div>
-    <div class="group-action" onclick="GroupMenuWindow.renameGroup()" id="groupRename">Rename</div>
-    <div class="group-action" onclick="GroupMenuWindow.setRules()" id="groupRules">Rules</div>
-    <div class="group-action" onclick="GroupMenuWindow.inviteToRoom()" id="groupInvite">Invite</div>
-    <div class="group-action" onclick="GroupMenuWindow.kickFromRoom()" id="groupKick">Kick</div>
-    <div class="group-action" onclick="GroupMenuWindow.leaveRoom()" id="groupLeave">Leave</div>
-    <div class="group-action" onclick="GroupMenuWindow.deleteRoom()" id="groupDelete">Delete</div>
-</div>
-<div class="delete-confirm-window" id="deleteConfirm">
-    <div class="delete-confirm-window__info" id="deleteConfirmHeader">
-        <span>Are you sure you want to delete this room?</span>
-        <span>Room data will not be recoverable.</span>
-    </div>
-    <div class="delete-confirm-window__cancel" onclick="deleteConfirmWindow.cancel()">Cancel</div>
-    <div class="delete-confirm-window__confirm" onclick="deleteConfirmWindow.deleteRoom()">DELETE</div>
-</div>
-<div class="leave-confirm" id="leaveConfirm">
-    <div class="delete-confirm-window__info" id="leaveConfirmHeader">
-        <span>Are you sure you want to leave this room?</span>
-    </div>
-    <div class="delete-confirm-window__cancel" onclick="leaveConfirmWindow.cancel()">Cancel</div>
-    <div class="delete-confirm-window__confirm" onclick="leaveConfirmWindow.leaveRoom()">LEAVE</div>
-</div>
-<div class="rename-group-window" id="renameRoomWindow">
-    <div class="rename-header" id="renameWindowOldName">test</div>
-    <div class="input-new-name"><label><input id="renameRoomInput" type="text"></label></div>
-    <button class="save-new-room-name" id="saveNewName" onclick="RoomRenameWindow.saveNewName()">SAVE</button>
-</div>
-<div class="set-rules-window" id="setRulesWindow">
-    <div class="set-rules-window__header a-c j-c" id="setRulesWindowHeader">Test</div>
-    <div class="set-rules-window__check-box" id="setRulesWindowListUser">
-        <div style="margin-left: 10px">User</div>
-        <div class="set-rules-window__rule">
+    <div class="modal__header modal--room-rules__header" id="setRulesWindowHeader">Test</div>
+    <div class="modal--room-rules__check-box" id="setRulesWindowListUser">
+        <div style="font-size: 1.25em; margin-bottom: 5px;">User:</div>
+        <div class="modal--room-rules__rule">
             <label for="ruleUserCanPost">Can post</label>
+            <div class="spacer"></div>
             <input type="checkbox" id="ruleUserCanPost" name="scales" checked/>
         </div>
-        <div class="set-rules-window__rule">
+        <div class="modal--room-rules__rule">
             <label for="ruleUserCanRenameRoom">Can rename</label>
+            <div class="spacer"></div>
             <input type="checkbox" id="ruleUserCanRenameRoom" name="scales" checked/>
         </div>
-        <div class="set-rules-window__rule">
+        <div class="modal--room-rules__rule">
             <label for="ruleUserCanInvite">Can invite</label>
+            <div class="spacer"></div>
             <input type="checkbox" id="ruleUserCanInvite" name="scales" checked/>
         </div>
-        <div class="set-rules-window__rule">
+        <div class="modal--room-rules__rule">
             <label for="ruleUserCanKick">Can kick</label>
+            <div class="spacer"></div>
             <input type="checkbox" id="ruleUserCanKick" name="scales" checked/>
         </div>
     </div>
-    <div class="set-rules-window__check-box" id="setRulesWindowListAdmin">
-        <div style="margin-left: 10px">Admin:</div>
-        <div class="set-rules-window__rule">
+    <div class="modal--room-rules__check-box" id="setRulesWindowListAdmin">
+        <div style="font-size: 1.25em; margin-bottom: 5px;">Admin:</div>
+        <div class="modal--room-rules__rule">
             <label for="ruleAdminCanRenameRoom">Can rename</label>
+            <div class="spacer"></div>
             <input type="checkbox" id="ruleAdminCanRenameRoom" name="scales" checked/>
         </div>
-        <div class="set-rules-window__rule">
+        <div class="modal--room-rules__rule">
             <label for="ruleAdminCanAddAdmins">Can add new admins</label>
+            <div class="spacer"></div>
             <input type="checkbox" id="ruleAdminCanAddAdmins" name="scales" checked/>
         </div>
-        <div class="set-rules-window__rule">
+        <div class="modal--room-rules__rule">
             <label for="ruleAdminCanRemoveAdmins">Can remove admins</label>
+            <div class="spacer"></div>
             <input type="checkbox" id="ruleAdminCanRemoveAdmins" name="scales" checked/>
         </div>
     </div>
-    <div class="set-rules-window__admins" id="setRulesWindowAdmins">
+    <div class="modal__scroll-list modal--room-rules__scroll-list" id="setRulesWindowAdmins">
     </div>
-    <div onclick="setRulesWindow.saveRules()">Save parameters</div>
+    <div class="btn modal--room-rules__save-btn" onclick="setRulesWindow.saveRules()">Save parameters</div>
 </div>
-<div class="invite-window" id="inviteUsersToRoom">
-    <div class="invite-header" id="inviteToRoomName">Test</div>
-    <div class="all-users-div" id="inviteUsersDiv">
+<div class="modal modal--invite-user" id="inviteUsersToRoom">
+    <div class="modal__pre-header modal--invite-user__pre-header">
+        <button onclick="inviteUsersWindow.closeWindow();GroupMenuWindow.openWindow();">
+            &times;
+        </button>
+    </div>
+    <div class="modal__header modal--invite-user__header" id="inviteToRoomHeader">Test</div>
+    <div class="modal__scroll-list modal--invite-user__scroll-list" id="inviteUsersDiv">
     </div>
 </div>
-<div class="kick-window" id="kickWindow">
-    <div class="kick-window__header" id="kickWindowHeader">Test</div>
-    <div class="kick-window__users" id="kickWindowUsers"></div>
+<div class="modal modal--kick-user" id="kickWindow">
+    <div class="modal__pre-header modal--kick-user__pre-header">
+         <button onclick="kickUserWindow.closeWindow();GroupMenuWindow.openWindow();">
+            &times;
+        </button>
+    </div>
+    <div class="modal__header modal--kick-user__header" id="kickWindowHeader">Test</div>
+    <div class="modal__scroll-list modal--kick-user__scroll-list" id="kickWindowUsers"></div>
 </div>
-<div class="new-room" id="newRoom">
-    <div class="new-room__header">Make new room</div>
-    <div class="new-room__name">
-        <label for="input"><input type="text" placeholder="Enter new room name" id="nameNewRoomInput"></label>
+<div class="modal modal--new-room" id="newRoom">
+    <div class="modal__pre-header">
+        <button onclick="newRoomWindow.closeWindow();overlay.classList.remove('active');">
+            &times;
+        </button>
     </div>
-    <div class="new-room__users" id="userToAddToNewRoom">
+    <div class="modal__header modal--new-room__header">Make new room</div>
+    <div class="text-input modal--new-room__text-input">
+        <label for="nameNewRoomInput"></label><input type="text" placeholder="Enter new room name" id="nameNewRoomInput">
     </div>
-    <div class="new-room__save-button" onclick="newRoomWindow.saveRoom()">Create room</div>
+    <div class="modal__scroll-list modal--new-room__scroll-list" id="userToAddToNewRoom">
+    </div>
+    <div class="btn modal--new-room__save-btn" onclick="newRoomWindow.saveRoom()">Create room</div>
 </div>
 <div id="overlay"></div>
 <footer>

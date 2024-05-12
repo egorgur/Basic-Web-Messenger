@@ -3,6 +3,7 @@ console.log(baseURL)
 const roomsDiv = document.getElementById('rooms')
 const messageDiv = document.getElementById('messages')
 const groupNameElement = document.getElementById('groupDataDisplay')
+const roomName = document.getElementById("roomName")
 const chatHeader = document.getElementById('chatHeader')
 const overlay = document.getElementById('overlay')
 
@@ -137,7 +138,6 @@ const Data = {
                 // console.log("messageData", messageData)
                 const div = document.createElement("div");
                 const author = Data.allUsers[messageData.authorId]
-                console.log(author)
                 div.className = "messenger__chat-message"
                 if (messageData.authorId === Data.user.id) {
                     div.classList.add("messenger__chat-message--user")
@@ -265,13 +265,13 @@ const Data = {
                     this.messages[parseInt(messageId)].hide()
                 })
             },
-            isAdmin() {
-                console.log("is Admin", Data.user.id in this.admins)
-                return Data.user.id in this.admins
+            isAdmin(userId) {
+                console.log("is Admin", userId in this.admins)
+                return userId in this.admins
             },
-            isOwner() {
-                console.log("is Owner", Data.user.id === this.ownerId)
-                return Data.user.id === this.ownerId
+            isOwner(userId) {
+                console.log("is Owner", userId === this.ownerId)
+                return userId === this.ownerId
             },
         }
     },
@@ -281,6 +281,7 @@ const INPUT = {
     textInputElement: document.getElementById('textInput'),
     textInputContainer: document.getElementById("textInputContainer"),
     chatInputContainer: document.getElementById("chatInputContainer"),
+    sendMessageButton: document.getElementById("sendMessageButton"),
     /**
      * roomId: {
      *     text: string of input
@@ -309,8 +310,8 @@ function activeWindowsResize() {
     if (InputContainerHeight <= 400) {
         roomsDiv.style.height = (window.innerHeight - 180).toString() + "px"
         messageDiv.style.height = (window.innerHeight - 204 - InputContainerHeight).toString() + "px"
-        console.log(InputContainerHeight)
-        console.log(roomsDiv.style.height, messageDiv.style.height)
+        // console.log(InputContainerHeight)
+        // console.log(roomsDiv.style.height, messageDiv.style.height)
     }
 }
 
@@ -329,8 +330,11 @@ INPUT.textInputElement.addEventListener('keydown', function (e) {
     }
     if (keyCode === 13 && !e.shiftKey) {
         e.preventDefault();
-        sendMessage()
-        INPUT.textInputElement.value = ""
+        if (INPUT[Data.currentRoomId]["text"]) {
+            sendMessage()
+            INPUT.textInputElement.value = ""
+            INPUT.textInputElement.style.height = "17px"
+        }
     }
 });
 
@@ -338,7 +342,6 @@ INPUT.textInputElement.addEventListener("input", (event) => {
     INPUT.textInputElement.style.height = "1px";
     INPUT.textInputElement.style.height = (INPUT.textInputElement.scrollHeight) + "px";
     const height = parseInt(INPUT.textInputElement.style.height) + 43
-    console.log(height, parseInt(INPUT.chatInputContainer.style.height))
     INPUT.chatInputContainer.style.height = height.toString() + "px"
     activeWindowsResize()
 })
@@ -370,16 +373,25 @@ function getScrollPosition() {
 function sendMessage() {
     if (Data.currentRoomId !== null) {
         messageDiv.scrollTo(0, 0)
-        websocket.send(JSON.stringify({
-            message: INPUT.textInputElement.value,
-            room_id: Data.currentRoomId,
-            request: "send_message",
-            has_media: INPUT.getFiles(Data.currentRoomId,).length > 0,
-        }))
+        let text = INPUT.textInputElement.value
+        if (text !== "") {
+            text = text.replace(/\r\n|\r|\n/g, "</br>")
+            websocket.send(JSON.stringify({
+                message: text,
+                room_id: Data.currentRoomId,
+                request: "send_message",
+                has_media: INPUT.getFiles(Data.currentRoomId,).length > 0,
+            }))
+            INPUT.textInputElement.value = ""
+            INPUT.textInputElement.style.height = "1px";
+            INPUT.textInputElement.style.height = (INPUT.textInputElement.scrollHeight) + "px";
+            const height = parseInt(INPUT.textInputElement.style.height) + 43
+            INPUT.chatInputContainer.style.height = height.toString() + "px"
+            activeWindowsResize()
+        }
+
     }
-
 }
-
 
 const REQUESTS = {
     requestRooms() {
@@ -561,6 +573,11 @@ function reload(type) {
     }
 }
 
+function clearFromJsCode(message) {
+    const first = message.replace("<script>", "<text>")
+    return first.replace("</script>", "</text>")
+}
+
 function websocketDataHandler(data) {
     console.log('from-server:', data)
     if (data["rooms"]) {
@@ -598,6 +615,9 @@ function websocketDataHandler(data) {
         for (const key in data["allUsers"]) {
             const userId = data["allUsers"][key]["id"]
             Data.allUsers[userId] = data["allUsers"][key]
+        }
+        if (newRoomWindow.open) {
+            newRoomWindow.openWindow()
         }
     }
     if (data["roomName"]) {
@@ -638,7 +658,7 @@ function websocketDataHandler(data) {
             } else {
                 console.log("input activated")
                 INPUT.textInputElement.removeAttribute("disabled")
-                INPUT.textInputElement.setAttribute("placeholder", "")
+                INPUT.textInputElement.setAttribute("placeholder", "Write a message...")
             }
             if ((!Data.getCurrentRoom().rules.ruleUserCanRenameRoom) && (Data.getCurrentRoom().rules !== "none") && (!Data.getCurrentRoom().isAdmin(Data.user.id))) {
                 console.log("rename disabled")
@@ -674,7 +694,7 @@ function websocketDataHandler(data) {
         } else {
             console.log("input activated")
             INPUT.textInputElement.removeAttribute("disabled")
-            INPUT.textInputElement.setAttribute("placeholder", "")
+            INPUT.textInputElement.setAttribute("placeholder", "Write a message...")
             RoomRenameWindow.groupWindowButton.style.display = "inherit"
             inviteUsersWindow.groupWindowButton.style.display = "inherit"
             kickUserWindow.groupWindowButton.style.display = "inherit"
@@ -696,7 +716,8 @@ function websocketDataHandler(data) {
     }
     if (data["messages"]) {
         for (const key in data["messages"]) {
-            Data.getCurrentRoom().insertMessage(data["messages"][key])
+            data["messages"][key]["message"] = clearFromJsCode(data["messages"][key]["message"])
+            Data.rooms[data["messages"][key]["room_id_id"]].insertMessage(data["messages"][key])
         }
         Data.getCurrentRoom().showMessages()
         if (data["messages"].length > 9) {
@@ -718,7 +739,8 @@ function websocketDataHandler(data) {
     }
     if (data["newMessage"]) {
         console.log("newMessage", data["newMessage"])
-        Data.getCurrentRoom().insertMessage(data["newMessage"])
+        data["newMessage"]["message"] = clearFromJsCode(data["newMessage"]["message"])
+        Data.rooms[data["newMessage"]["room_id_id"]].insertMessage(data["newMessage"])
         if (data["newMessage"]["room_id_id"] === Data.currentRoomId) {
             Data.getCurrentRoom().messages[data["newMessage"]["id"]].show()
         }
@@ -737,9 +759,9 @@ function showRoomName() {
     console.log("current room", Data.currentRoomId)
     if (Data.currentRoomId !== null) {
         console.log("name", Data.getCurrentRoom().name)
-        groupNameElement.innerHTML = Data.getCurrentRoom().name
+        roomName.innerHTML = Data.getCurrentRoom().name
     } else {
-        groupNameElement.innerHTML = ''
+        roomName.innerHTML = ''
     }
 }
 
@@ -850,8 +872,8 @@ const deleteConfirmWindow = {
     header: document.getElementById("deleteConfirmHeader"),
     window: document.getElementById("deleteConfirm"),
     openWindow() {
-        this.header.innerHTML = "<span>" + "Are you sure you want to delete " + Data.currentRoomId + "?</span>" +
-            "<span>Room data will not be recoverable.</span>"
+        this.header.innerHTML = "<div>" + "Are you sure you want to delete " + Data.getCurrentRoom().name + "?</div>" +
+            "<div>Room data will not be recoverable.</div>"
         this.open = true
         overlay.classList.add('active')
         this.window.classList.add('active')
@@ -882,12 +904,7 @@ const RoomRenameWindow = {
     renameRoomInput: document.getElementById('renameRoomInput'),
     saveButton: document.getElementById('renameRoomInput'),
     openWindow() {
-        this.renameWindowOldName.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + 'Rename ' + Data.getCurrentRoom().name + "</span>"
-        const button = this.renameWindowOldName.getElementsByTagName('button')
-        button.item(0).onclick = function () {
-            RoomRenameWindow.closeWindow()
-            GroupMenuWindow.openWindow()
-        }
+        this.renameWindowOldName.innerHTML = "<span style=''>" + 'Rename ' + Data.getCurrentRoom().name + "</span>"
         this.roomMenuWindow.classList.add('active')
         overlay.classList.add('active')
         this.open = true
@@ -949,18 +966,13 @@ const setRulesWindow = {
     openWindow() {
         this.open = true
         this.showRules()
-        if (!Data.getCurrentRoom().isOwner(Data.currentRoomId)) {
+        if (!Data.getCurrentRoom().isOwner(Data.user.id)) {
             this.setRulesWindowListAdmin.style.display = "none"
         } else {
-            this.setRulesWindowListAdmin.style.display = "inherit"
+            this.setRulesWindowListAdmin.style.display = "flex"
         }
         this.window.classList.add("active")
-        this.header.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + 'Rules ' + Data.getCurrentRoom().name + "</span>"
-        const button = this.header.getElementsByTagName('button')
-        button.item(0).onclick = function () {
-            setRulesWindow.closeWindow()
-            GroupMenuWindow.openWindow()
-        }
+        this.header.innerHTML = "<span>" + 'Rules ' + Data.getCurrentRoom().name + "</span>"
     },
     showRules() {
         console.log("Rules", Data.getCurrentRoom().rules)
@@ -1023,21 +1035,22 @@ const setRulesWindow = {
     },
     createUserDiv(userData) {
         let div = document.createElement("div");
-        div.className = "user"
+        div.className = "modal__scroll-list-component modal--room-rules__scroll-list-component"
         div.id = "user_" + userData.id
+        console.log(div.id)
         const Name = userData.username
-        if (Data.getCurrentRoom().isOwner(Data.currentRoomId)) {
+        if (Data.getCurrentRoom().isOwner(Data.user.id)) {
             console.log("You are an owner")
             if (Data.getCurrentRoom().isOwner(userData.id)) {
-                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Owner" + "</div>"
+                div.innerHTML = "<span>" + Name + "</span>" + "Owner"
             } else if (Data.getCurrentRoom().isAdmin(userData.id)) {
-                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>remove admin</button>" + "</div>"
+                div.innerHTML = "<span>" + Name + "</span>" + "<button class='btn' style='padding: 0 3px;border: none;'>remove admin</button>"
                 const button = div.getElementsByTagName("button")
                 button.item(0).onclick = function () {
                     REQUESTS.requestRemoveAdmin(userData.id, Data.currentRoomId)
                 }
             } else {
-                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>make admin</button>" + "</div>"
+                div.innerHTML = "<span>" + Name + "</span>" + "<button class='btn' style='padding: 0 3px;border: none;'>make admin</button>"
                 const button = div.getElementsByTagName("button")
                 button.item(0).onclick = function () {
                     REQUESTS.requestMakeAdmin(userData.id, Data.currentRoomId)
@@ -1046,36 +1059,36 @@ const setRulesWindow = {
         } else if (Data.getCurrentRoom().isAdmin(Data.user.id)) {
             console.log("You are an admin")
             if (Data.getCurrentRoom().isOwner(userData.id)) {
-                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Owner" + "</div>"
+                div.innerHTML = "<div>" + Name + "</div>" + "Owner"
             } else if (Data.getCurrentRoom().isAdmin(userData.id)) {
                 if (Data.getCurrentRoom().rules.ruleAdminCanRemoveAdmins) {
-                    div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>remove admin</button>" + "</div>"
+                    div.innerHTML = "<div>" + Name + "</div>" + "<button class='btn' style='padding: 0 3px;border: none;'>remove admin</button>"
                     const button = div.getElementsByTagName("button")
                     button.item(0).onclick = function () {
                         REQUESTS.requestRemoveAdmin(userData.id, Data.currentRoomId)
                     }
                 } else {
-                    div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Admin" + "</div>"
+                    div.innerHTML = "<div>" + Name + "</div>" + "Admin"
                 }
             } else {
                 if (Data.getCurrentRoom().rules.ruleAdminCanAddAdmins) {
-                    div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>make admin</button>" + "</div>"
+                    div.innerHTML = "<div>" + Name + "</div>" + "<button class='btn' style='padding: 0 3px;border: none;'>make admin</button>"
                     const button = div.getElementsByTagName("button")
                     button.item(0).onclick = function () {
                         REQUESTS.requestMakeAdmin(userData.id, Data.currentRoomId)
                     }
                 } else {
-                    div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "User" + "</div>"
+                    div.innerHTML = "<div>" + Name + "</div>" + "User"
                 }
             }
         } else {
             console.log("You are a user")
             if (Data.getCurrentRoom().isOwner(userData.id)) {
-                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Owner" + "</div>"
+                div.innerHTML = "<div>" + Name + "</div>" + "Owner"
             } else if (Data.getCurrentRoom().isAdmin(userData.id)) {
-                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "Admin" + "</div>"
+                div.innerHTML = "<div>" + Name + "</div>" + "Admin"
             } else {
-                div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "User" + "</div>"
+                div.innerHTML = "<div>" + Name + "</div>" + "User"
             }
         }
         this.usersListDisplay.appendChild(div);
@@ -1111,15 +1124,10 @@ const inviteUsersWindow = {
     open: false,
     window: document.getElementById("inviteUsersToRoom"),
     groupWindowButton: document.getElementById("groupInvite"),
-    inviteToRoomName: document.getElementById("inviteToRoomName"),
+    inviteToRoomHeader: document.getElementById("inviteToRoomHeader"),
     inviteUsersDiv: document.getElementById("inviteUsersDiv"),
     openWindow() {
-        this.inviteToRoomName.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + "Invite to " + Data.getCurrentRoom().name + "</span>"
-        const button = this.inviteToRoomName.getElementsByTagName('button')
-        button.item(0).onclick = function () {
-            inviteUsersWindow.closeWindow()
-            GroupMenuWindow.openWindow()
-        }
+        this.inviteToRoomHeader.innerHTML = "<div>" + "Invite to " + Data.getCurrentRoom().name + "</div>"
         this.window.classList.add("active")
         this.showUsersToInvite()
         overlay.classList.add("active")
@@ -1141,10 +1149,10 @@ const inviteUsersWindow = {
     },
     createUserDiv(user) {
         let div = document.createElement("div");
-        div.className = "user"
+        div.className = "modal__scroll-list-component modal--invite-user__scroll-list-component"
         div.id = "user_" + user.id
         const Name = user.username
-        div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button id=\"inviteButton\">Invite</button>" + "</div>"
+        div.innerHTML = "<span>" + Name + "</span>" + "<button class='btn' style='padding: 0 3px;border: none;'>Invite</button>"
         const button = div.getElementsByTagName("button")
         button.item(0).onclick = function () {
             REQUESTS.requestInviteUser(user.id, Data.currentRoomId)
@@ -1161,12 +1169,7 @@ const kickUserWindow = {
     kickWindowUsers: document.getElementById("kickWindowUsers"),
     openWindow() {
         console.log("kickOpens")
-        this.kickWindowHeader.innerHTML = "<button style='margin-left: 10px'>&larr;</button>" + "<span style='margin-left: 70px'>" + "Kick from " + Data.getCurrentRoom().name + "</span>"
-        const button = this.kickWindowHeader.getElementsByTagName('button')
-        button.item(0).onclick = function () {
-            kickUserWindow.closeWindow()
-            GroupMenuWindow.openWindow()
-        }
+        this.kickWindowHeader.innerHTML = "<div>" + "Kick from " + Data.getCurrentRoom().name + "</div>"
         this.window.classList.add("active")
         this.showUsersToKick()
         overlay.classList.add("active")
@@ -1188,10 +1191,10 @@ const kickUserWindow = {
     },
     createUserDiv(user) {
         let div = document.createElement("div");
-        div.className = "user"
+        div.className = "modal__scroll-list-component modal--kick-user__scroll-list-component"
         div.id = "user_" + user.id
         const Name = user.username
-        div.innerHTML = "<div class=\"user\">" + "<span>" + Name + "</span>" + "<button>Kick</button>" + "</div>"
+        div.innerHTML = "<span>" + Name + "</span>" + "<button class='btn' style='padding: 0 3px;border: none;'>Kick</button>"
         const button = div.getElementsByTagName("button")
         button.item(0).onclick = function () {
             REQUESTS.requestKickUser(user.id, Data.currentRoomId)
@@ -1207,7 +1210,9 @@ const newRoomWindow = {
     users: document.getElementById("userToAddToNewRoom"),
     chosenUsers: [],
     openWindow() {
-        REQUESTS.requestAllUsers()
+        if (!this.open) {
+            REQUESTS.requestAllUsers()
+        }
         this.window.classList.add("active")
         this.showUsers()
         overlay.classList.add("active")
@@ -1222,23 +1227,24 @@ const newRoomWindow = {
         if ((this.nameInput.value)) {
             REQUESTS.requestNewRoom(this.nameInput.value, this.chosenUsers)
         }
+        this.closeWindow()
     },
     showUsers() {
         this.users.replaceChildren()
         for (const userId in Data.allUsers) {
             const userData = Data.allUsers[userId]
+            console.log("userData", userData)
             if ((Data.allUsers[userId].id !== Data.user.id)) {
-                console.log(userData)
                 this.createUserDiv(userData)
             }
         }
     },
     createUserDiv(user) {
         let div = document.createElement("div");
-        div.className = "user"
+        div.className = "modal__scroll-list-component modal--new-room__scroll-list-component"
         div.id = "user_" + user.id
         const Name = user.username
-        div.innerHTML = "<div class=\"user\">" + Name + "<button style='height: 20px;width: 50px'>Add</button>" + "<span style='display: none' id='notchosen'></span>" + "</div>"
+        div.innerHTML = Name + "<button class='btn' style='padding: 0 3px;border: none;'>Add</button>" + "<span style='display: none' id='notchosen'></span>"
         const button = div.getElementsByTagName("button")
         button.item(0).onclick = function () {
             const span = div.getElementsByTagName("span").item(0)

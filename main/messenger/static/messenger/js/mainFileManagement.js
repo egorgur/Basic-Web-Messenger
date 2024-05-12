@@ -1,15 +1,39 @@
-const dragToZone = document.querySelector(".column-wrapper")
+const fileInput = document.getElementById("fileInput")
+
+
+
+fileInput.onchange = (event) => {
+    const [file] = fileInput.files
+    if (file) {
+        if (Data.currentRoomId !== null) {
+                if (INPUT[Data.currentRoomId]) {
+                    INPUT[Data.currentRoomId]["files"].push(file)
+                } else {
+                    INPUT[Data.currentRoomId] = {
+                        text: "",
+                        files: [file]
+                    }
+                }
+                fileInputWindow.openWindow()
+            }
+        fileInput.files = []
+    }
+}
+
+
 
 const dropZone = {
     open: false,
     window: document.getElementById("dropZoneWindow"),
     openWindow() {
+        this.open = true
         this.window.classList.add("active")
     },
     onDrop() {
         this.window.style.border = "1px red solid"
     },
     closeWindow() {
+        this.open = false
         this.window.classList.remove("active")
     },
 }
@@ -34,7 +58,7 @@ const fileInputWindow = {
         div.className = "filePreview"
         div.id = "file_" + file
         const Name = fileData.name
-        div.innerHTML = "<span>" + Name + "</span>" + "<button>" + "&times;" + "</button>"
+        div.innerHTML = "<span>" + Name + "</span>" + "<button style='padding-left: 5px;background: none;font-size: 1.25em' >" + "&times;" + "</button>"
         const button = div.getElementsByTagName("button")
         button.item(0).onclick = function () {
             INPUT[Data.currentRoomId]["files"].splice(file, 1)
@@ -47,12 +71,12 @@ const fileInputWindow = {
     },
 }
 
-window.window.addEventListener("drop", (event) => {
+window.addEventListener("drop", (event) => {
         event.preventDefault()
         event.stopPropagation()
         let box = dropZone.window.getBoundingClientRect();
         if (((box.left - 1 <= event.x) && (event.x <= box.right + 1)) && ((box.top - 1 <= event.y) && (event.y <= box.bottom + 1))) {
-            if (DATA.currentRoom.id !== null) {
+            if (Data.currentRoomId !== null) {
                 if (INPUT[Data.currentRoomId]) {
                     INPUT[Data.currentRoomId]["files"].push(event.dataTransfer.files[0])
                 } else {
@@ -64,7 +88,10 @@ window.window.addEventListener("drop", (event) => {
                 fileInputWindow.openWindow()
             }
             dropZone.closeWindow()
-            dropZone.window.style.border = '#1b6d85 1px dashed'
+            dropZone.window.style.border = '#595959FF 1px dashed'
+        } else {
+            dropZone.closeWindow()
+            dropZone.window.style.border = '#595959FF 1px dashed'
         }
     }
 )
@@ -75,7 +102,7 @@ window.addEventListener("dragover", (event) => {
         dropZone.openWindow()
         let box = dropZone.window.getBoundingClientRect();
         if (((box.left - 1 <= event.x) && (event.x <= box.right + 1)) && ((box.top - 1 <= event.y) && (event.y <= box.bottom + 1))) {
-            dropZone.window.style.border = '1px red solid'
+            dropZone.window.style.border = '1px white solid'
         }
     }
 })
@@ -83,9 +110,9 @@ window.addEventListener("dragover", (event) => {
 window.addEventListener("dragleave", (event) => {
     if (event.x === 0 && event.y === 0) {
         dropZone.closeWindow()
-        dropZone.window.style.border = '#1b6d85 1px dashed'
+        dropZone.window.style.border = '#595959FF 1px dashed'
     } else if (event.target === dropZone.window) {
-        dropZone.window.style.border = '#1b6d85 1px dashed'
+        dropZone.window.style.border = '#595959FF 1px dashed'
     }
     event.preventDefault()
     event.stopPropagation()
@@ -108,7 +135,7 @@ function uploadFile(file, messageId) {
     form.append("roomId", Data.currentRoomId)
     form.append("messageId", messageId)
     form.append("enctype", "multipart/form-data")
-    console.log("form",...form)
+    console.log("form", ...form)
     const xhr = new XMLHttpRequest();
 
     // xhr.upload.onprogress = function (event) {
