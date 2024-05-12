@@ -86,9 +86,6 @@ class Consumer(AsyncConsumer):
                 #        portion in 10 messages
                 for i in range(len(room_messages)):
                     if room_messages[i]["has_media"]:
-                        await database_sync_to_async(print)(
-                            await database_sync_to_async(
-                                Media.objects.filter(message_id=room_messages[i]["id"]).values)())
                         room_messages[i]["media"] = await database_sync_to_async(list)(
                             await database_sync_to_async(
                                 Media.objects.filter(message_id=room_messages[i]["id"]).values)())
@@ -112,7 +109,6 @@ class Consumer(AsyncConsumer):
                 room_users = await database_sync_to_async(list)(room.users.all().values('id', 'username'))
                 for i in range(len(room_users)):
                     user = room_users[i]["id"]
-                    print('user',user)
                 room_rules = room.rules
                 room_data = {
                     "roomId": received["room_id"],
@@ -206,7 +202,6 @@ class Consumer(AsyncConsumer):
                         room_rules["ruleAdminCanRemoveAdmins"] = rules["ruleAdminCanRemoveAdmins"]
                     room.rules = json.dumps(room_rules)
                     await database_sync_to_async(room.save)()
-                    print(room.rules)
                     answer = {
                         "success": True,
                         "reload": "room",
@@ -315,14 +310,12 @@ class Consumer(AsyncConsumer):
                                         "type": "websocket.send",
                                         "text": json.dumps(answer)
                                     })
-                                    print("admin cannot add mew admins")
+                                    print("admin cannot add new admins")
                                     return 0
                     if not await database_sync_to_async(
                             room_administration.admins.filter(id=received['user_id']).exists)():
                         user = await database_sync_to_async(User.objects.get)(pk=user_id)
                         await database_sync_to_async(room_administration.admins.add)(user)
-                        await (database_sync_to_async(print)
-                               (await database_sync_to_async(room_administration.admins.all)()))
                         answer = {
                             "success": True,
                             "reload": "room",
@@ -613,7 +606,7 @@ class Consumer(AsyncConsumer):
         room = await database_sync_to_async(Room.objects.get)(id=room_id)
         room.name = new_name
         await database_sync_to_async(room.save)()
-        print(f'renamed room {room_id} to {new_name}')
+        print(f'renamed room_{room_id} to {new_name}')
 
     async def get_user_data(self):
         answer = {
@@ -652,6 +645,13 @@ class Consumer(AsyncConsumer):
                 has_media=message_data['has_media'],
             )
             await database_sync_to_async(message.save)()
+            print('answered ', {"yourMessage":{
+                "id": message.id,
+                "message": message.message,
+                "room_id": message_data['room_id'],
+                "author_id": self.user.id,
+                "has_media": message_data['has_media'],
+            }})
             await self.send({
                 "type": "websocket.send",
                 "text": json.dumps({
@@ -665,7 +665,6 @@ class Consumer(AsyncConsumer):
                 })
             })
             if not message_data['has_media']:
-                print("no media")
                 room_name = "Room_group_" + str(message_data['room_id'])
                 message_data["message_id"] = message.id
                 group_request = {
@@ -677,9 +676,7 @@ class Consumer(AsyncConsumer):
                 )
 
     async def update_message_call(self, received):
-        print("update message call")
         request = json.loads(received['text'])
-        print(request, type(request))
         message_id = request["message_id"]
         room_id = request["room_id"]
         await self.update_message(message_id, room_id)
@@ -692,9 +689,6 @@ class Consumer(AsyncConsumer):
             await database_sync_to_async(
                 Message.objects.filter(id=message_id).values)())
         if message[0]["has_media"]:
-            await database_sync_to_async(print)(
-                await database_sync_to_async(
-                    Media.objects.filter(message_id=message[0]["id"]).values)())
             message[0]["media"] = await database_sync_to_async(list)(
                 await database_sync_to_async(
                     Media.objects.filter(message_id=message[0]["id"]).values)())
@@ -707,13 +701,6 @@ class Consumer(AsyncConsumer):
             "type": "websocket.send",
             "text": json.dumps(answer),
         })
-        # group_answer = {
-        #     "type": "group_send",
-        #     "text": json.dumps(answer),
-        # }
-        # await self.channel_layer.group_send(
-        #     room_name, group_answer
-        # )
 
     async def group_send(self, answer):
         print('answer ', answer)

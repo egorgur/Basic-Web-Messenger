@@ -42,10 +42,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'guest_user',
-    'rest_framework',
 ]
 # 'django.middleware.security.SecurityMiddleware',
 MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -147,7 +148,9 @@ USE_TZ = True
 MEDIA_ROOT = os.path.join(BASE_DIR, "messenger", "media")
 MEDIA_URL = "/media/"
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'messenger', 'static'),
