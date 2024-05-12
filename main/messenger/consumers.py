@@ -457,6 +457,17 @@ class Consumer(AsyncConsumer):
                                         return 0
 
                         user = await database_sync_to_async(User.objects.get)(pk=received['user_id'])
+                        if room_administration.owner == user.id:
+                            answer = {
+                                "error": True,
+                                "data": "cannot kick owner",
+                            }
+                            await self.send({
+                                "type": "websocket.send",
+                                "text": json.dumps(answer)
+                            })
+                            print("cannot kick this user because they is an owner")
+                            return 0
                         await database_sync_to_async(room.users.remove)(user)
                         room_name = "Room_group_" + str(received["room_id"])
                         try:
@@ -496,8 +507,13 @@ class Consumer(AsyncConsumer):
                 try:
                     room = await database_sync_to_async(Room.objects.get)(pk=received['room_id'])
                     if await database_sync_to_async(room.users.filter(id=self.user.id).exists)():
+                        room_administration = await database_sync_to_async(RoomAdmin.objects.get)(room_id=room)
                         user = await database_sync_to_async(User.objects.get)(pk=self.user.id)
+                        if user.id == room_administration.owner:
+                            room_administration.owner = None
+                            await database_sync_to_async(room_administration.save)()
                         await database_sync_to_async(room.users.remove)(user)
+                        await database_sync_to_async(room.save)()
                         room_name = "Room_group_" + str(received['room_id'])
                         await self.channel_layer.group_discard(
                             room_name, self.channel_name

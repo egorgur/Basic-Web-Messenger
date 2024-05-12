@@ -378,10 +378,11 @@ def username_is_occupied(data) -> bool:
 
 def new_user_adding(data):
     print("new user needs rework", data)
-    # User.objects.create_user(
-    #     username=data["name"],
-    #     password=data["password"],
-    # )
+    user = User.objects.create_user(
+        username=data["name"],
+        password=data["password"],
+    )
+    UserSettings.objects.create(user=user)
 
 
 @dataclass

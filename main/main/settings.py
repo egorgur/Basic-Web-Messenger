@@ -25,7 +25,12 @@ SECRET_KEY = 'django-insecure-r1y_sr-38zpx+e(e_@z(15_vxh5!b%70b4i1n3(zp!g8(7iql=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.31.193', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = [
+    '192.168.31.193',
+    'localhost',
+    '127.0.0.1',
+    os.getenv("SERVER_IP", 'localhost')
+]
 CSRF_TRUSTED_ORIGINS = ["http://192.168.31.193"]
 # ALLOWED_HOSTS = ["*"]
 
@@ -87,6 +92,7 @@ DATABASES = {
         'NAME': 'postgres',
         'USER': 'postgres',
         'PASSWORD': 'postgre5eeeee3xf',
+        # "HOST": "db",
         "HOST": "localhost",
         "PORT": "5432",
     }
@@ -103,6 +109,7 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
             "hosts": [f"redis://localhost:6379"],
+            # "hosts": [f"redis://redis:6379"],
         },
     },
 }
