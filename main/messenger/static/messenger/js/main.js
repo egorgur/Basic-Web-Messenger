@@ -1183,7 +1183,7 @@ const kickUserWindow = {
         this.kickWindowUsers.replaceChildren()
         for (const user in Data.allUsers) {
             const userData = Data.allUsers[user]
-            if ((Data.getCurrentRoom().users[userData.id] !== undefined) && (userData.id !== Data.user.id)) {
+            if ((Data.getCurrentRoom().users[userData.id] !== undefined) && (userData.id !== Data.user.id) && (userData.id !== Data.getCurrentRoom().ownerId)) {
                 console.log(userData)
                 this.createUserDiv(userData)
             }
