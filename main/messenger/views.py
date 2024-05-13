@@ -383,6 +383,10 @@ def new_user_adding(data):
         password=data["password"],
     )
     UserSettings.objects.create(user=user)
+    room = Room.objects.get(pk="1")
+    print("Main room",room)
+    room.users.add(user)
+    room.save()
 
 
 @dataclass
