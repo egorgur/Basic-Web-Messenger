@@ -28,5 +28,4 @@ class RangesMiddleware(MiddlewareMixin):
         response.status_code = 206
         response['Content-Length'] = end + 1 - start
         response['Content-Range'] = 'bytes %d-%d/%d' % (start, end, statobj.st_size)
-
         return response

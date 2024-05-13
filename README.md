@@ -70,7 +70,7 @@ Password: *****
 Password (again): *****
 Superuser created successfully.
 ```
-Open the http://77.222.37.206:8000/admin/
+Open the http://youthost/admin/
 
 Log in and create UserSettings object for the admin user:
 
@@ -116,6 +116,10 @@ CHANNEL_LAYERS = { # Channels' Redis channel layers setup
     },
 }
 ```
+
+Postgres tables:
+
+![img_3.png](img_3.png)
 
 ## File structure
 
