@@ -17,6 +17,10 @@ Try it for yourself http://77.222.37.206:8000/messenger/
 
 # Setup
 
+```diff
+- Attention! Setup is essential and must be done in order to have the Messenger functioning at all.
+```
+
 ## Docker
 
 Compose the cluster
@@ -83,10 +87,6 @@ Name it like you want.
 ![img_1.png](img_1.png)
 
 You are good to go!
-
-```diffs
-- Attention! These steps are unavoidable and must be done.
-```
 
 
 # Project structure
