@@ -144,10 +144,10 @@ Postgres tables:
 
 # Known issues
 ## Bugs
-1. First messages in the newly created room do not show themselves
+1. First messages in the newly created room do not show themselves. On encounter just reload the page
 2. Strange behavior of the file uploading. It looks like even the smallest
 internet connection drops cause the file uploading to cancel and 
-a send message will lose its media content.
+a send message will lose its media content. On encounter try send another message with the media.
 ## Missing or undeveloped features
-1. Message deletion and editing
-2. User's contacts list of other users 
+1. Message deletion and editing. For now it is not developed
+2. User's contacts list of other users. For now every user can add every other user to the room and do not have the contacts settings nor the ability to send personal messages.
