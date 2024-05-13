@@ -18,7 +18,7 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=main.settings
       - DEBUG=False
-      - SERVER_IP=192.168.31.193
+      - SERVER_IP=77.222.37.206
   db:
     image: postgres:latest
     restart: always
