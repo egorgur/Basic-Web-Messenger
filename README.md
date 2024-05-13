@@ -83,6 +83,12 @@ Name it like you want.
 ![img_1.png](img_1.png)
 
 You are good to go!
+
+```diffs
+- Attention! These steps are unavoidable and must be done.
+```
+
+
 # Project structure
 
 It utilizes PostgeSQL and Redis databases:
