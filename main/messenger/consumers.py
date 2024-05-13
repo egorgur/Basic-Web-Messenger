@@ -17,6 +17,8 @@ class Consumer(AsyncConsumer):
     async def websocket_connect(self, event):
         await self.send({"type": "websocket.accept"})
         self.user = self.scope["user"]
+        if self.user.is_anonymous:
+            return 0
         print('USER::', self.user)
         user_channels[self.user.id] = self.channel_name
         print("user_channels", user_channels)
